@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crew-Ausweis Generator · XY Pictures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#15161a;font-family:'IBM Plex Mono',monospace;}
+  input,select,textarea{font-family:'IBM Plex Mono',monospace;}
+  input:focus,select:focus{border-color:#6c6e74 !important;}
+  ::placeholder{color:#5a5d64;}
+
+  /* scrollbars in the dark UI */
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#2a2d33;border-radius:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  /* Print: only the print sheet is visible, in card format on A4 */
+  #printSheet{display:none;}
+  @media print{
+    @page{size:A4 portrait;margin:8mm;}
+    #app{display:none !important;}
+    #printSheet{display:flex !important;}
+    *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ APP ============ -->
+<div id="app" style="min-height:100vh;background:#15161a;display:flex;flex-direction:column;font-family:'IBM Plex Mono',monospace;">
+
+  <!-- Topbar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #2a2c31;flex:none;">
+    <div style="display:flex;align-items:center;gap:11px;">
+      <span style="width:13px;height:13px;background:#f4f3ef;transform:rotate(45deg);display:block;"></span>
+      <div>
+        <div style="font:700 18px 'Saira Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#f4f3ef;">Crew-Ausweis Generator</div>
+        <div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#6c6e74;text-transform:uppercase;margin-top:1px;">XY Pictures · Heinrich-Hertz-Gymnasium</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <label style="display:flex;align-items:center;gap:9px;">
+        <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;">Filmtitel</span>
+        <input id="filmTitle" style="width:240px;background:#1d1f24;border:1px solid #34373e;border-radius:7px;padding:8px 11px;color:#f4f3ef;font:500 13px 'IBM Plex Mono',monospace;outline:none;">
+      </label>
+      <div id="btnPrint" role="button" tabindex="0" style="cursor:pointer;background:#f4f3ef;color:#15161a;border-radius:8px;padding:10px 18px;font:700 12px 'IBM Plex Mono',monospace;letter-spacing:.08em;display:flex;align-items:center;gap:8px;user-select:none;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;"></span>ALLE DRUCKEN</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div style="flex:1;display:flex;min-height:0;">
+
+    <!-- LIST -->
+    <div style="width:312px;flex:none;border-right:1px solid #2a2c31;display:flex;flex-direction:column;min-height:0;">
+      <div style="padding:16px 16px 12px;flex:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Teilnehmer · <span id="count">0</span></span>
+          <div id="btnAdd" role="button" tabindex="0" style="cursor:pointer;background:#2a2d33;border:1px solid #3a3d44;color:#f4f3ef;border-radius:7px;padding:6px 12px;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;user-select:none;">+ NEU</div>
+        </div>
+        <input id="search" placeholder="Suchen …" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:7px;padding:9px 11px;color:#f4f3ef;font:500 13px 'IBM Plex Mono',monospace;outline:none;">
+      </div>
+      <div id="list" style="flex:1;overflow-y:auto;padding:0 10px 14px;display:flex;flex-direction:column;gap:3px;"></div>
+    </div>
+
+    <!-- EDITOR -->
+    <div style="width:392px;flex:none;border-right:1px solid #2a2c31;overflow-y:auto;">
+      <div id="editorBody" style="padding:22px 24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Attribute bearbeiten</span>
+          <div style="display:flex;gap:8px;">
+            <div id="btnDup" role="button" tabindex="0" style="cursor:pointer;color:#9a9ca3;border:1px solid #34373e;border-radius:6px;padding:5px 10px;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.06em;user-select:none;">DUPLIZIEREN</div>
+            <div id="btnDel" role="button" tabindex="0" style="cursor:pointer;color:oklch(0.72 0.15 25);border:1px solid #43282b;border-radius:6px;padding:5px 10px;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.06em;user-select:none;">LÖSCHEN</div>
+          </div>
+        </div>
+
+        <label style="display:block;margin-bottom:15px;">
+          <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Name</span>
+          <input id="edName" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 15px 'IBM Plex Mono',monospace;outline:none;">
+        </label>
+
+        <div style="display:flex;gap:12px;margin-bottom:15px;">
+          <label style="flex:1;">
+            <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Pronomen</span>
+            <input id="edPronouns" placeholder="sie/ihr" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 14px 'IBM Plex Mono',monospace;outline:none;">
+          </label>
+          <label style="width:108px;flex:none;">
+            <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Pass-Nr.</span>
+            <input id="edNo" placeholder="003" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 14px 'IBM Plex Mono',monospace;outline:none;">
+          </label>
+        </div>
+
+        <label style="display:block;margin-bottom:15px;">
+          <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Department</span>
+          <select id="edDept" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 15px 'IBM Plex Mono',monospace;outline:none;cursor:pointer;"></select>
+        </label>
+
+        <label style="display:block;margin-bottom:15px;">
+          <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Rolle / Funktion</span>
+          <input id="edRole" placeholder="z. B. Kamera / DOP" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 15px 'IBM Plex Mono',monospace;outline:none;">
+        </label>
+
+        <label style="display:block;margin-bottom:20px;">
+          <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Rollenname im Film <span style="color:#5a5d64;">· optional</span></span>
+          <input id="edFilmRole" placeholder="z. B. Detektivin Halm" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 15px 'IBM Plex Mono',monospace;outline:none;">
+        </label>
+
+        <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:8px;">Markierungen</span>
+        <div style="display:flex;gap:10px;">
+          <div id="edHead" role="button" tabindex="0" style="flex:1;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:8px;font:700 12px 'IBM Plex Mono',monospace;letter-spacing:.08em;user-select:none;"><span style="width:8px;height:8px;background:currentColor;transform:rotate(45deg);display:block;"></span>HEAD</div>
+          <div id="edMedia" role="button" tabindex="0" style="flex:1;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:8px;font:700 12px 'IBM Plex Mono',monospace;letter-spacing:.08em;user-select:none;"><span style="width:9px;height:13px;border:2px solid currentColor;border-radius:2px;display:block;"></span>MEDIA</div>
+        </div>
+        <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#6c6e74;margin-top:11px;line-height:1.5;">HEAD = Department-Head · MEDIA = Foto/Video-Freigabe für Social Media. Änderungen werden automatisch gesichert.</div>
+      </div>
+
+      <div id="editorEmpty" style="display:none;padding:60px 28px;text-align:center;color:#6c6e74;font:500 13px 'IBM Plex Mono',monospace;line-height:1.6;">Keine Person ausgewählt.<br>Wähle links eine Person oder lege eine neue an.</div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div style="flex:1;min-width:0;overflow:auto;display:flex;align-items:center;justify-content:center;padding:40px;background:#101114;">
+      <div id="previewWrap" style="display:flex;flex-direction:column;gap:16px;align-items:center;">
+        <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · 85 × 54 mm</div>
+        <div id="previewCard"></div>
+        <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:420px;text-align:center;line-height:1.5;">QR-Code verlinkt auf den Drehplan. Über „Alle drucken“ werden alle Ausweise im Kartenformat als PDF gesetzt.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ DRUCKBOGEN ============ -->
+<div id="printSheet" style="min-height:100vh;background:#fff;padding:8mm;flex-wrap:wrap;gap:6mm;align-content:flex-start;"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+
+  const DEPTS = {
+    RG:{name:'Regie',      color:'oklch(0.66 0.2 25)',  band:'#15161a', role:'oklch(0.74 0.13 25)'},
+    PR:{name:'Produktion', color:'oklch(0.79 0.16 80)', band:'#15161a', role:'oklch(0.85 0.1 80)'},
+    TE:{name:'Technik',    color:'oklch(0.72 0.16 155)',band:'#15161a', role:'oklch(0.8 0.1 155)'},
+    KO:{name:'Kostüm',     color:'oklch(0.66 0.15 255)',band:'#f4f3ef', role:'oklch(0.78 0.1 255)'},
+    SZ:{name:'Szenenbild', color:'oklch(0.64 0.2 330)', band:'#f4f3ef', role:'oklch(0.78 0.13 330)'},
+    CA:{name:'Cast',       color:'oklch(0.58 0.19 290)',band:'#f4f3ef', role:'oklch(0.8 0.12 290)'},
+  };
+  const KEY = 'tmol_participants_v1';
+  const FKEY = 'tmol_filmtitle_v1';
+  const DEFAULT_FILM = 'The Massacre of Love';
+
+  const state = { participants: [], selectedId: null, filmTitle: DEFAULT_FILM, q: '' };
+
+  // ---- helpers ----
+  const uid = () => 'p' + Math.random().toString(36).slice(2, 9);
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const dept = (code) => DEPTS[code] || DEPTS.TE;
+
+  function seed() {
+    return [
+      {id:uid(),name:'Lena Vogt',   pronouns:'sie/ihr',  dept:'RG', role:'Regie',        filmRole:'',                head:true,  media:true,  no:'003'},
+      {id:uid(),name:'Jonas Brandt',pronouns:'er/ihm',   dept:'TE', role:'Kamera / DOP', filmRole:'',                head:true,  media:false, no:'014'},
+      {id:uid(),name:'Sam Reue',    pronouns:'they/them',dept:'KO', role:'Kostümbild',   filmRole:'',                head:false, media:false, no:'041'},
+      {id:uid(),name:'Mara Vesper', pronouns:'sie/ihr',  dept:'CA', role:'Darstellerin', filmRole:'Detektivin Halm', head:false, media:false, no:'052'},
+    ];
+  }
+
+  function load() {
+    let saved = null, ft = null;
+    try { saved = JSON.parse(localStorage.getItem(KEY)); ft = localStorage.getItem(FKEY); } catch (e) {}
+    if (!Array.isArray(saved) || !saved.length) saved = seed();
+    state.participants = saved;
+    state.selectedId = saved[0] ? saved[0].id : null;
+    state.filmTitle = ft || DEFAULT_FILM;
+  }
+
+  function persist() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state.participants));
+      localStorage.setItem(FKEY, state.filmTitle);
+    } catch (e) {}
+  }
+
+  const selected = () => state.participants.find(p => p.id === state.selectedId) || null;
+
+  // ---- mutations ----
+  function add() {
+    const p = {id:uid(),name:'Neue Person',pronouns:'',dept:'TE',role:'',filmRole:'',head:false,media:false,no:''};
+    state.participants.push(p);
+    state.selectedId = p.id;
+    state.q = '';
+    persist();
+    $('search').value = '';
+    renderList(); renderEditor(); renderPreview(); renderCount();
+    $('edName').focus(); $('edName').select();
+  }
+  function dup() {
+    const src = selected(); if (!src) return;
+    const p = {...src, id:uid(), name:src.name + ' (Kopie)', no:''};
+    state.participants.push(p);
+    state.selectedId = p.id;
+    persist();
+    renderList(); renderEditor(); renderPreview(); renderCount();
+  }
+  function del() {
+    state.participants = state.participants.filter(p => p.id !== state.selectedId);
+    state.selectedId = state.participants[0] ? state.participants[0].id : null;
+    persist();
+    renderList(); renderEditor(); renderPreview(); renderCount();
+  }
+  function update(field, value) {
+    const p = selected(); if (!p) return;
+    p[field] = value;
+    persist();
+  }
+
+  // ---- card markup (shared by preview + print) ----
+  function cardInnerHTML(p, filmTitle) {
+    const d = dept(p.dept);
+    const hasFilmRole = !!(p.filmRole && String(p.filmRole).trim());
+    return `
+    <div style="position:relative;width:520px;height:328px;border-radius:14px;overflow:hidden;background:#26282d;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+      <div style="height:94px;background:${d.color};display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 14px;">
+        <div style="font:700 36px 'Saira Condensed',sans-serif;color:${d.band};letter-spacing:.05em;text-transform:uppercase;line-height:.9;">${esc(d.name)}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${p.head ? `<span style="display:inline-flex;align-items:center;gap:6px;background:#f4f3ef;border-radius:5px;padding:5px 10px;font:700 11px 'IBM Plex Mono',monospace;color:#15161a;letter-spacing:.08em;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;"></span>HEAD</span>` : ``}
+          ${p.media ? `<span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.13 200);border-radius:5px;padding:5px 10px;color:#0c1414;"><span style="width:10px;height:15px;border:2px solid #0c1414;border-radius:2px;display:block;"></span><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">MEDIA</span></span>` : ``}
+        </div>
+      </div>
+      <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
+      <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#cfd0d4;text-transform:uppercase;">${esc(filmTitle)}</span></div>
+          <div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;">
+            <div style="font:700 46px 'Saira Condensed',sans-serif;color:#f4f3ef;text-transform:uppercase;line-height:.94;">${esc(p.name)}</div>
+            ${p.pronouns ? `<span style="font:500 13px 'IBM Plex Mono',monospace;color:#c9cace;border:1px solid #4a4d54;border-radius:20px;padding:4px 12px;">${esc(p.pronouns)}</span>` : ``}
+          </div>
+          <div style="font:500 16px 'IBM Plex Mono',monospace;color:${d.role};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
+          ${hasFilmRole ? `
+          <div style="font:500 9.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div>
+          <div style="font:600 23px 'Saira Condensed',sans-serif;color:${d.role};margin-top:2px;text-transform:uppercase;letter-spacing:.02em;">${esc(p.filmRole)}</div>` : ``}
+        </div>
+        <div style="text-align:center;flex:none;"><img src="assets/qr-drehplan.svg" alt="QR Drehplan" style="width:82px;height:82px;display:block;border-radius:6px;background:#fff;padding:5px;box-sizing:border-box;"><div style="font:600 9px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.14em;margin-top:6px;">DREHPLAN</div></div>
+      </div>
+      <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid ${d.color};display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
+        <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:24px;display:block;">
+        <div style="display:flex;align-items:center;gap:13px;">
+          ${p.no ? `<span style="font:600 10px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.12em;">NO. ${esc(p.no)}</span>` : ``}
+          <span style="width:1px;height:22px;background:#3a3d43;display:block;"></span>
+          <img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="height:30px;width:30px;display:block;opacity:.9;">
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ---- renderers ----
+  function renderCount() { $('count').textContent = state.participants.length; }
+
+  function getFiltered() {
+    const ql = state.q.trim().toLowerCase();
+    if (!ql) return state.participants;
+    return state.participants.filter(p =>
+      (p.name || '').toLowerCase().includes(ql) ||
+      dept(p.dept).name.toLowerCase().includes(ql)
+    );
+  }
+
+  function renderList() {
+    const wrap = $('list');
+    wrap.innerHTML = '';
+    getFiltered().forEach(p => {
+      const d = dept(p.dept);
+      const on = p.id === state.selectedId;
+      const row = document.createElement('div');
+      row.style.cssText = `display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:9px;cursor:pointer;background:${on?'#2a2d34':'transparent'};border:1px solid ${on?'#3d4149':'transparent'};`;
+      row.innerHTML = `
+        <span style="width:11px;height:34px;border-radius:3px;background:${d.color};flex:none;"></span>
+        <div style="min-width:0;flex:1;">
+          <div style="font:700 17px 'Saira Condensed',sans-serif;color:#f4f3ef;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.name)}</div>
+          <div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:3px;">${esc(d.name)}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex:none;">
+          ${p.head ? `<span style="font:700 9px 'IBM Plex Mono',monospace;color:#15161a;background:#f4f3ef;border-radius:3px;padding:2px 5px;">H</span>` : ``}
+          ${p.media ? `<span style="font:700 9px 'IBM Plex Mono',monospace;color:#0c1414;background:oklch(0.8 0.13 200);border-radius:3px;padding:2px 5px;">M</span>` : ``}
+        </div>`;
+      row.addEventListener('click', () => {
+        state.selectedId = p.id;
+        renderList(); renderEditor(); renderPreview();
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  function applyToggleStyles(p) {
+    const head = $('edHead'), media = $('edMedia');
+    head.style.background = p.head ? '#f4f3ef' : '#1a1c20';
+    head.style.color = p.head ? '#15161a' : '#8a8d94';
+    head.style.border = '1px solid ' + (p.head ? '#f4f3ef' : '#34373e');
+    media.style.background = p.media ? 'oklch(0.8 0.13 200)' : '#1a1c20';
+    media.style.color = p.media ? '#0c1414' : '#8a8d94';
+    media.style.border = '1px solid ' + (p.media ? 'oklch(0.8 0.13 200)' : '#34373e');
+  }
+
+  function renderEditor() {
+    const p = selected();
+    if (!p) {
+      $('editorBody').style.display = 'none';
+      $('editorEmpty').style.display = 'block';
+      return;
+    }
+    $('editorBody').style.display = 'block';
+    $('editorEmpty').style.display = 'none';
+    $('edName').value = p.name || '';
+    $('edPronouns').value = p.pronouns || '';
+    $('edNo').value = p.no || '';
+    $('edDept').value = p.dept;
+    $('edRole').value = p.role || '';
+    $('edFilmRole').value = p.filmRole || '';
+    applyToggleStyles(p);
+  }
+
+  function renderPreview() {
+    const p = selected();
+    const wrap = $('previewWrap');
+    if (!p) { wrap.style.visibility = 'hidden'; return; }
+    wrap.style.visibility = 'visible';
+    $('previewCard').innerHTML = cardInnerHTML(p, state.filmTitle);
+  }
+
+  function doPrint() {
+    const sheet = $('printSheet');
+    sheet.innerHTML = state.participants.map(p => `
+      <div style="width:85mm;height:54mm;overflow:hidden;border-radius:2.4mm;flex:none;">
+        <div style="width:520px;height:328px;transform:scale(0.6178);transform-origin:top left;">
+          ${cardInnerHTML(p, state.filmTitle)}
+        </div>
+      </div>`).join('');
+    setTimeout(() => window.print(), 80);
+  }
+
+  // ---- wiring ----
+  function clickable(el, fn) {
+    el.addEventListener('click', fn);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); }
+    });
+  }
+
+  function init() {
+    load();
+
+    // department options
+    $('edDept').innerHTML = Object.keys(DEPTS)
+      .map(k => `<option value="${k}">${esc(DEPTS[k].name)}</option>`).join('');
+
+    $('filmTitle').value = state.filmTitle;
+    $('search').value = state.q;
+
+    $('filmTitle').addEventListener('input', (e) => {
+      state.filmTitle = e.target.value; persist(); renderPreview();
+    });
+    $('search').addEventListener('input', (e) => {
+      state.q = e.target.value; renderList();
+    });
+
+    $('edName').addEventListener('input', (e) => { update('name', e.target.value); renderPreview(); renderList(); });
+    $('edPronouns').addEventListener('input', (e) => { update('pronouns', e.target.value); renderPreview(); });
+    $('edNo').addEventListener('input', (e) => { update('no', e.target.value); renderPreview(); });
+    $('edRole').addEventListener('input', (e) => { update('role', e.target.value); renderPreview(); });
+    $('edFilmRole').addEventListener('input', (e) => { update('filmRole', e.target.value); renderPreview(); });
+    $('edDept').addEventListener('change', (e) => { update('dept', e.target.value); renderPreview(); renderList(); });
+
+    clickable($('edHead'), () => { const p = selected(); if (!p) return; update('head', !p.head); applyToggleStyles(p); renderPreview(); renderList(); });
+    clickable($('edMedia'), () => { const p = selected(); if (!p) return; update('media', !p.media); applyToggleStyles(p); renderPreview(); renderList(); });
+
+    clickable($('btnAdd'), add);
+    clickable($('btnDup'), dup);
+    clickable($('btnDel'), del);
+    clickable($('btnPrint'), doPrint);
+
+    renderCount(); renderList(); renderEditor(); renderPreview();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#15161a;}
+input,select,textarea{font-family:'IBM Plex Mono';}
+input:focus,select:focus{border-color:#6c6e74 !important;}
+::placeholder{color:#5a5d64;}
+@page{size:A4 portrait;margin:8mm;}
+</style>
+</helmet>
+
+<!-- ============ APP ============ -->
+<sc-if value="{{ showApp }}" hint-placeholder-val="{{ true }}">
+<div style="min-height:100vh;background:#15161a;display:flex;flex-direction:column;font-family:'IBM Plex Mono';">
+
+  <!-- Topbar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #2a2c31;flex:none;">
+    <div style="display:flex;align-items:center;gap:11px;">
+      <span style="width:13px;height:13px;background:#f4f3ef;transform:rotate(45deg);display:block;"></span>
+      <div>
+        <div style="font:700 18px 'Saira Condensed';letter-spacing:.05em;text-transform:uppercase;color:#f4f3ef;">Crew-Ausweis Generator</div>
+        <div style="font:500 10px 'IBM Plex Mono';letter-spacing:.16em;color:#6c6e74;text-transform:uppercase;margin-top:1px;">XY Pictures · Heinrich-Hertz-Gymnasium</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <label style="display:flex;align-items:center;gap:9px;">
+        <span style="font:600 10px 'IBM Plex Mono';letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;">Filmtitel</span>
+        <input value="{{ filmTitle }}" onInput="{{ onFilm }}" style="width:240px;background:#1d1f24;border:1px solid #34373e;border-radius:7px;padding:8px 11px;color:#f4f3ef;font:500 13px 'IBM Plex Mono';outline:none;">
+      </label>
+      <div onClick="{{ onPrint }}" style="cursor:pointer;background:#f4f3ef;color:#15161a;border-radius:8px;padding:10px 18px;font:700 12px 'IBM Plex Mono';letter-spacing:.08em;display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;"></span>ALLE DRUCKEN</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div style="flex:1;display:flex;min-height:0;">
+
+    <!-- LIST -->
+    <div style="width:312px;flex:none;border-right:1px solid #2a2c31;display:flex;flex-direction:column;min-height:0;">
+      <div style="padding:16px 16px 12px;flex:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font:600 10px 'IBM Plex Mono';letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Teilnehmer · {{ count }}</span>
+          <div onClick="{{ onAdd }}" style="cursor:pointer;background:#2a2d33;border:1px solid #3a3d44;color:#f4f3ef;border-radius:7px;padding:6px 12px;font:600 11px 'IBM Plex Mono';letter-spacing:.06em;">+ NEU</div>
+        </div>
+        <input value="{{ q }}" onInput="{{ onSearch }}" placeholder="Suchen …" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:7px;padding:9px 11px;color:#f4f3ef;font:500 13px 'IBM Plex Mono';outline:none;">
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:0 10px 14px;display:flex;flex-direction:column;gap:3px;">
+        <sc-for list="{{ list }}" as="item" hint-placeholder-count="4">
+          <div onClick="{{ item.onSelect }}" style="display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:9px;cursor:pointer;background:{{ item.rowBg }};border:1px solid {{ item.rowBorder }};">
+            <span style="width:11px;height:34px;border-radius:3px;background:{{ item.deptColor }};flex:none;"></span>
+            <div style="min-width:0;flex:1;">
+              <div style="font:700 17px 'Saira Condensed';color:#f4f3ef;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.name }}</div>
+              <div style="font:500 10.5px 'IBM Plex Mono';color:#8a8d94;margin-top:3px;">{{ item.deptName }}</div>
+            </div>
+            <div style="display:flex;gap:4px;flex:none;">
+              <sc-if value="{{ item.head }}" hint-placeholder-val="{{ false }}"><span style="font:700 9px 'IBM Plex Mono';color:#15161a;background:#f4f3ef;border-radius:3px;padding:2px 5px;">H</span></sc-if>
+              <sc-if value="{{ item.media }}" hint-placeholder-val="{{ false }}"><span style="font:700 9px 'IBM Plex Mono';color:#0c1414;background:oklch(0.8 0.13 200);border-radius:3px;padding:2px 5px;">M</span></sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- EDITOR -->
+    <div style="width:392px;flex:none;border-right:1px solid #2a2c31;overflow-y:auto;">
+      <sc-if value="{{ selExists }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:22px 24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <span style="font:600 10px 'IBM Plex Mono';letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Attribute bearbeiten</span>
+          <div style="display:flex;gap:8px;">
+            <div onClick="{{ onDup }}" style="cursor:pointer;color:#9a9ca3;border:1px solid #34373e;border-radius:6px;padding:5px 10px;font:600 10px 'IBM Plex Mono';letter-spacing:.06em;">DUPLIZIEREN</div>
+            <div onClick="{{ onDel }}" style="cursor:pointer;color:oklch(0.72 0.15 25);border:1px solid #43282b;border-radius:6px;padding:5px 10px;font:600 10px 'IBM Plex Mono';letter-spacing:.06em;">LÖSCHEN</div>
+          </div>
+        </div>
+
+        <label style="display:block;margin-bottom:15px;">
+          <span style="font:600 10px 'IBM Plex Mono';letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Name</span>
+          <input value="{{ sel.name }}" onInput="{{ onName }}" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 15px 'IBM Plex Mono';outline:none;">
+        </label>
+
+        <div style="display:flex;gap:12px;margin-bottom:15px;">
+          <label style="flex:1;">
+            <span style="font:600 10px 'IBM Plex Mono';letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Pronomen</span>
+            <input value="{{ sel.pronouns }}" onInput="{{ onPronouns }}" placeholder="sie/ihr" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 14px 'IBM Plex Mono';outline:none;">
+          </label>
+          <label style="width:108px;flex:none;">
+            <span style="font:600 10px 'IBM Plex Mono';letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Pass-Nr.</span>
+            <input value="{{ sel.no }}" onInput="{{ onNo }}" placeholder="003" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 14px 'IBM Plex Mono';outline:none;">
+          </label>
+        </div>
+
+        <label style="display:block;margin-bottom:15px;">
+          <span style="font:600 10px 'IBM Plex Mono';letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Department</span>
+          <select value="{{ sel.dept }}" onChange="{{ onDept }}" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 15px 'IBM Plex Mono';outline:none;cursor:pointer;">
+            <sc-for list="{{ depts }}" as="d" hint-placeholder-count="6"><option value="{{ d.code }}">{{ d.name }}</option></sc-for>
+          </select>
+        </label>
+
+        <label style="display:block;margin-bottom:15px;">
+          <span style="font:600 10px 'IBM Plex Mono';letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Rolle / Funktion</span>
+          <input value="{{ sel.role }}" onInput="{{ onRole }}" placeholder="z. B. Kamera / DOP" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 15px 'IBM Plex Mono';outline:none;">
+        </label>
+
+        <label style="display:block;margin-bottom:20px;">
+          <span style="font:600 10px 'IBM Plex Mono';letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Rollenname im Film <span style="color:#5a5d64;">· optional</span></span>
+          <input value="{{ sel.filmRole }}" onInput="{{ onFilmRole }}" placeholder="z. B. Detektivin Halm" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 15px 'IBM Plex Mono';outline:none;">
+        </label>
+
+        <span style="font:600 10px 'IBM Plex Mono';letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:8px;">Markierungen</span>
+        <div style="display:flex;gap:10px;">
+          <div onClick="{{ onHeadToggle }}" style="flex:1;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:8px;background:{{ sel.headBg }};border:1px solid {{ sel.headBorder }};color:{{ sel.headFg }};font:700 12px 'IBM Plex Mono';letter-spacing:.08em;"><span style="width:8px;height:8px;background:currentColor;transform:rotate(45deg);display:block;"></span>HEAD</div>
+          <div onClick="{{ onMediaToggle }}" style="flex:1;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:8px;background:{{ sel.mediaBg }};border:1px solid {{ sel.mediaBorder }};color:{{ sel.mediaFg }};font:700 12px 'IBM Plex Mono';letter-spacing:.08em;"><span style="width:9px;height:13px;border:2px solid currentColor;border-radius:2px;display:block;"></span>MEDIA</div>
+        </div>
+        <div style="font:400 10.5px 'IBM Plex Mono';color:#6c6e74;margin-top:11px;line-height:1.5;">HEAD = Department-Head · MEDIA = Foto/Video-Freigabe für Social Media. Änderungen werden automatisch gesichert.</div>
+      </div>
+      </sc-if>
+      <sc-if value="{{ selEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:60px 28px;text-align:center;color:#6c6e74;font:500 13px 'IBM Plex Mono';line-height:1.6;">Keine Person ausgewählt.<br>Wähle links eine Person oder lege eine neue an.</div>
+      </sc-if>
+    </div>
+
+    <!-- PREVIEW -->
+    <div style="flex:1;min-width:0;overflow:auto;display:flex;align-items:center;justify-content:center;padding:40px;background:#101114;">
+      <sc-if value="{{ selExists }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:16px;align-items:center;">
+        <div style="font:600 10px 'IBM Plex Mono';letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · 85 × 54 mm</div>
+        <div style="position:relative;width:520px;height:328px;border-radius:14px;overflow:hidden;background:#26282d;box-shadow:0 14px 40px rgba(0,0,0,.45);print-color-adjust:exact;-webkit-print-color-adjust:exact;">
+          <div style="height:94px;background:{{ sel.deptColor }};display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 14px;">
+            <div style="font:700 36px 'Saira Condensed';color:{{ sel.bandText }};letter-spacing:.05em;text-transform:uppercase;line-height:.9;">{{ sel.deptName }}</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <sc-if value="{{ sel.head }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:6px;background:#f4f3ef;border-radius:5px;padding:5px 10px;font:700 11px 'IBM Plex Mono';color:#15161a;letter-spacing:.08em;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;"></span>HEAD</span></sc-if>
+              <sc-if value="{{ sel.media }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.13 200);border-radius:5px;padding:5px 10px;color:#0c1414;"><span style="width:10px;height:15px;border:2px solid #0c1414;border-radius:2px;display:block;"></span><span style="font:700 11px 'IBM Plex Mono';letter-spacing:.06em;">MEDIA</span></span></sc-if>
+            </div>
+          </div>
+          <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
+          <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
+            <div style="min-width:0;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="width:7px;height:7px;background:{{ sel.deptColor }};display:block;"></span><span style="font:600 11px 'IBM Plex Mono';letter-spacing:.18em;color:#cfd0d4;text-transform:uppercase;">{{ filmTitle }}</span></div>
+              <div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;">
+                <div style="font:700 46px 'Saira Condensed';color:#f4f3ef;text-transform:uppercase;line-height:.94;">{{ sel.name }}</div>
+                <sc-if value="{{ sel.pronouns }}" hint-placeholder-val="x"><span style="font:500 13px 'IBM Plex Mono';color:#c9cace;border:1px solid #4a4d54;border-radius:20px;padding:4px 12px;">{{ sel.pronouns }}</span></sc-if>
+              </div>
+              <div style="font:500 16px 'IBM Plex Mono';color:{{ sel.roleColor }};margin-top:11px;letter-spacing:.01em;">{{ sel.role }}</div>
+              <sc-if value="{{ sel.hasFilmRole }}" hint-placeholder-val="{{ false }}">
+                <div style="font:500 9.5px 'IBM Plex Mono';color:#7b7d83;letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div>
+                <div style="font:600 23px 'Saira Condensed';color:{{ sel.roleColor }};margin-top:2px;text-transform:uppercase;letter-spacing:.02em;">{{ sel.filmRole }}</div>
+              </sc-if>
+            </div>
+            <div style="text-align:center;flex:none;"><img src="qr-drehplan.svg" alt="QR Drehplan" style="width:82px;height:82px;display:block;border-radius:6px;background:#fff;padding:5px;box-sizing:border-box;"><div style="font:600 9px 'IBM Plex Mono';color:#9a9ca3;letter-spacing:.14em;margin-top:6px;">DREHPLAN</div></div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid {{ sel.deptColor }};display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
+            <img src="xy-pictures-logo.png" alt="XY Pictures" style="height:24px;display:block;">
+            <div style="display:flex;align-items:center;gap:13px;">
+              <sc-if value="{{ sel.no }}" hint-placeholder-val="x"><span style="font:600 10px 'IBM Plex Mono';color:#9a9ca3;letter-spacing:.12em;">NO. {{ sel.no }}</span></sc-if>
+              <span style="width:1px;height:22px;background:#3a3d43;display:block;"></span>
+              <img src="school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="height:30px;width:30px;display:block;opacity:.9;">
+            </div>
+          </div>
+        </div>
+        <div style="font:400 10.5px 'IBM Plex Mono';color:#5a5d64;max-width:420px;text-align:center;line-height:1.5;">QR-Code verlinkt auf den Drehplan. Über „Alle drucken" werden alle Ausweise im Kartenformat als PDF gesetzt.</div>
+      </div>
+      </sc-if>
+    </div>
+
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ DRUCKBOGEN ============ -->
+<sc-if value="{{ showPrint }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100vh;background:#fff;padding:8mm;display:flex;flex-wrap:wrap;gap:6mm;align-content:flex-start;">
+  <sc-for list="{{ cards }}" as="item" hint-placeholder-count="4">
+    <div style="width:85mm;height:54mm;overflow:hidden;border-radius:2.4mm;flex:none;">
+      <div style="width:520px;height:328px;transform:scale(0.6178);transform-origin:top left;">
+        <div style="position:relative;width:520px;height:328px;border-radius:14px;overflow:hidden;background:#26282d;print-color-adjust:exact;-webkit-print-color-adjust:exact;">
+          <div style="height:94px;background:{{ item.deptColor }};display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 14px;">
+            <div style="font:700 36px 'Saira Condensed';color:{{ item.bandText }};letter-spacing:.05em;text-transform:uppercase;line-height:.9;">{{ item.deptName }}</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <sc-if value="{{ item.head }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;background:#f4f3ef;border-radius:5px;padding:5px 10px;font:700 11px 'IBM Plex Mono';color:#15161a;letter-spacing:.08em;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;"></span>HEAD</span></sc-if>
+              <sc-if value="{{ item.media }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.13 200);border-radius:5px;padding:5px 10px;color:#0c1414;"><span style="width:10px;height:15px;border:2px solid #0c1414;border-radius:2px;display:block;"></span><span style="font:700 11px 'IBM Plex Mono';letter-spacing:.06em;">MEDIA</span></span></sc-if>
+            </div>
+          </div>
+          <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
+          <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
+            <div style="min-width:0;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="width:7px;height:7px;background:{{ item.deptColor }};display:block;"></span><span style="font:600 11px 'IBM Plex Mono';letter-spacing:.18em;color:#cfd0d4;text-transform:uppercase;">{{ filmTitle }}</span></div>
+              <div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;">
+                <div style="font:700 46px 'Saira Condensed';color:#f4f3ef;text-transform:uppercase;line-height:.94;">{{ item.name }}</div>
+                <sc-if value="{{ item.pronouns }}" hint-placeholder-val="x"><span style="font:500 13px 'IBM Plex Mono';color:#c9cace;border:1px solid #4a4d54;border-radius:20px;padding:4px 12px;">{{ item.pronouns }}</span></sc-if>
+              </div>
+              <div style="font:500 16px 'IBM Plex Mono';color:{{ item.roleColor }};margin-top:11px;letter-spacing:.01em;">{{ item.role }}</div>
+              <sc-if value="{{ item.hasFilmRole }}" hint-placeholder-val="{{ false }}">
+                <div style="font:500 9.5px 'IBM Plex Mono';color:#7b7d83;letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div>
+                <div style="font:600 23px 'Saira Condensed';color:{{ item.roleColor }};margin-top:2px;text-transform:uppercase;letter-spacing:.02em;">{{ item.filmRole }}</div>
+              </sc-if>
+            </div>
+            <div style="text-align:center;flex:none;"><img src="qr-drehplan.svg" alt="QR Drehplan" style="width:82px;height:82px;display:block;border-radius:6px;background:#fff;padding:5px;box-sizing:border-box;"><div style="font:600 9px 'IBM Plex Mono';color:#9a9ca3;letter-spacing:.14em;margin-top:6px;">DREHPLAN</div></div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid {{ item.deptColor }};display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
+            <img src="xy-pictures-logo.png" alt="XY Pictures" style="height:24px;display:block;">
+            <div style="display:flex;align-items:center;gap:13px;">
+              <sc-if value="{{ item.no }}" hint-placeholder-val="x"><span style="font:600 10px 'IBM Plex Mono';color:#9a9ca3;letter-spacing:.12em;">NO. {{ item.no }}</span></sc-if>
+              <span style="width:1px;height:22px;background:#3a3d43;display:block;"></span>
+              <img src="school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="height:30px;width:30px;display:block;opacity:.9;">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  DEPTS = {
+    RG:{name:'Regie',      color:'oklch(0.66 0.2 25)',  band:'#15161a', role:'oklch(0.74 0.13 25)'},
+    PR:{name:'Produktion', color:'oklch(0.79 0.16 80)', band:'#15161a', role:'oklch(0.85 0.1 80)'},
+    TE:{name:'Technik',    color:'oklch(0.72 0.16 155)',band:'#15161a', role:'oklch(0.8 0.1 155)'},
+    KO:{name:'Kostüm',     color:'oklch(0.66 0.15 255)',band:'#f4f3ef', role:'oklch(0.78 0.1 255)'},
+    SZ:{name:'Szenenbild', color:'oklch(0.64 0.2 330)', band:'#f4f3ef', role:'oklch(0.78 0.13 330)'},
+    CA:{name:'Cast',       color:'oklch(0.58 0.19 290)',band:'#f4f3ef', role:'oklch(0.8 0.12 290)'},
+  };
+  KEY='tmol_participants_v1'; FKEY='tmol_filmtitle_v1';
+  state = { participants:[], selectedId:null, filmTitle:'The Massacre of Love', q:'', printing:false };
+
+  componentDidMount(){
+    let saved=null, ft=null;
+    try{ saved=JSON.parse(localStorage.getItem(this.KEY)); ft=localStorage.getItem(this.FKEY); }catch(e){}
+    if(!Array.isArray(saved)||!saved.length) saved=this.seed();
+    this.setState({participants:saved, selectedId:saved[0]?saved[0].id:null, filmTitle: ft||'The Massacre of Love'});
+  }
+  uid(){ return 'p'+Math.random().toString(36).slice(2,9); }
+  seed(){ return [
+    {id:this.uid(),name:'Lena Vogt',  pronouns:'sie/ihr', dept:'RG', role:'Regie',       filmRole:'', head:true,  media:true,  no:'003'},
+    {id:this.uid(),name:'Jonas Brandt',pronouns:'er/ihm', dept:'TE', role:'Kamera / DOP', filmRole:'', head:true,  media:false, no:'014'},
+    {id:this.uid(),name:'Sam Reue',   pronouns:'they/them',dept:'KO', role:'Kostümbild',  filmRole:'', head:false, media:false, no:'041'},
+    {id:this.uid(),name:'Mara Vesper',pronouns:'sie/ihr', dept:'CA', role:'Darstellerin', filmRole:'Detektivin Halm', head:false, media:false, no:'052'},
+  ]; }
+  persist(list, ft){
+    try{
+      localStorage.setItem(this.KEY, JSON.stringify(list!=null?list:this.state.participants));
+      localStorage.setItem(this.FKEY, ft!=null?ft:this.state.filmTitle);
+    }catch(e){}
+  }
+  add(){
+    const p={id:this.uid(),name:'Neue Person',pronouns:'',dept:'TE',role:'',filmRole:'',head:false,media:false,no:''};
+    const list=[...this.state.participants,p];
+    this.setState({participants:list,selectedId:p.id,q:''}); this.persist(list);
+  }
+  dup(){
+    const src=this.state.participants.find(p=>p.id===this.state.selectedId); if(!src) return;
+    const p={...src,id:this.uid(),name:src.name+' (Kopie)',no:''};
+    const list=[...this.state.participants,p];
+    this.setState({participants:list,selectedId:p.id}); this.persist(list);
+  }
+  del(){
+    const list=this.state.participants.filter(p=>p.id!==this.state.selectedId);
+    const sel=list[0]?list[0].id:null;
+    this.setState({participants:list,selectedId:sel}); this.persist(list);
+  }
+  update(field,value){
+    const list=this.state.participants.map(p=>p.id===this.state.selectedId?{...p,[field]:value}:p);
+    this.setState({participants:list}); this.persist(list);
+  }
+  setFilm(v){ this.setState({filmTitle:v}); this.persist(null,v); }
+  print(){ this.setState({printing:true}); setTimeout(()=>{ window.print(); this.setState({printing:false}); }, 250); }
+
+  enrich(p){
+    const d=this.DEPTS[p.dept]||this.DEPTS.TE;
+    return {...p, deptColor:d.color, bandText:d.band, roleColor:d.role, deptName:d.name,
+      hasFilmRole:!!(p.filmRole&&String(p.filmRole).trim()),
+      headBg: p.head?'#f4f3ef':'#1a1c20', headFg: p.head?'#15161a':'#8a8d94', headBorder: p.head?'#f4f3ef':'#34373e',
+      mediaBg: p.media?'oklch(0.8 0.13 200)':'#1a1c20', mediaFg: p.media?'#0c1414':'#8a8d94', mediaBorder: p.media?'oklch(0.8 0.13 200)':'#34373e',
+      exists:true };
+  }
+  renderVals(){
+    const {participants,selectedId,filmTitle,q,printing}=this.state;
+    const ql=q.trim().toLowerCase();
+    const filtered = ql? participants.filter(p=>(p.name||'').toLowerCase().includes(ql)||(this.DEPTS[p.dept]?this.DEPTS[p.dept].name.toLowerCase().includes(ql):false)) : participants;
+    const list = filtered.map(p=>{
+      const d=this.DEPTS[p.dept]||this.DEPTS.TE; const on=p.id===selectedId;
+      return {...p, deptColor:d.color, deptName:d.name,
+        rowBg:on?'#2a2d34':'transparent', rowBorder:on?'#3d4149':'transparent',
+        onSelect:()=>this.setState({selectedId:p.id})};
+    });
+    const selRaw=participants.find(p=>p.id===selectedId);
+    const sel=selRaw?this.enrich(selRaw):{exists:false};
+    const cards=participants.map(p=>this.enrich(p));
+    return {
+      showApp:!printing, showPrint:printing,
+      list, sel, cards, filmTitle, q, count:participants.length,
+      selExists: sel.exists===true, selEmpty: !(sel.exists===true),
+      depts:Object.keys(this.DEPTS).map(k=>({code:k,name:this.DEPTS[k].name})),
+      onAdd:()=>this.add(), onDup:()=>this.dup(), onDel:()=>this.del(), onPrint:()=>this.print(),
+      onSearch:e=>this.setState({q:e.target.value}),
+      onFilm:e=>this.setFilm(e.target.value),
+      onName:e=>this.update('name',e.target.value),
+      onPronouns:e=>this.update('pronouns',e.target.value),
+      onNo:e=>this.update('no',e.target.value),
+      onDept:e=>this.update('dept',e.target.value),
+      onRole:e=>this.update('role',e.target.value),
+      onFilmRole:e=>this.update('filmRole',e.target.value),
+      onHeadToggle:()=>this.update('head', !(selRaw&&selRaw.head)),
+      onMediaToggle:()=>this.update('media', !(selRaw&&selRaw.media)),
+    };
+  }
+}
+</script>
+</body>
+</html>
