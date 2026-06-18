@@ -2,8 +2,15 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Crew-Ausweis Generator · XY Pictures</title>
+<meta name="theme-color" content="#15161a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Crew-Ausweis">
+<link rel="apple-touch-icon" href="assets/school-emblem-white.png">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,6 +25,36 @@
   ::-webkit-scrollbar{width:10px;height:10px;}
   ::-webkit-scrollbar-thumb{background:#2a2d33;border-radius:6px;}
   ::-webkit-scrollbar-track{background:transparent;}
+
+  /* ---- Mobile / iPhone: single column with bottom tab bar ---- */
+  #mobileTabs{display:none;}
+  @media (max-width:760px){
+    html,body{height:100%;}
+    #app{min-height:100vh;min-height:100dvh;height:100dvh;}
+
+    #topbar{flex-wrap:wrap;gap:12px;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));}
+    #topbar .topbar-right{width:100%;gap:12px;}
+    #topbar .film-label{flex:1;}
+    #filmTitle{width:100% !important;}
+
+    #main{flex-direction:column;min-height:0;}
+    #paneList,#paneEditor,#panePreview{width:100% !important;border-right:none !important;min-height:0;}
+
+    /* show only the active pane */
+    #main[data-view="list"] #paneEditor,
+    #main[data-view="list"] #panePreview,
+    #main[data-view="editor"] #paneList,
+    #main[data-view="editor"] #panePreview,
+    #main[data-view="preview"] #paneList,
+    #main[data-view="preview"] #paneEditor{display:none !important;}
+
+    #panePreview{padding:24px 16px;align-items:center;}
+
+    #mobileTabs{display:flex;flex:none;border-top:1px solid #2a2c31;background:#15161a;padding-bottom:env(safe-area-inset-bottom);}
+    #mobileTabs button{flex:1;background:transparent;border:none;color:#6c6e74;padding:11px 6px;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;}
+    #mobileTabs button .ic{width:9px;height:9px;background:currentColor;transform:rotate(45deg);display:block;}
+    #mobileTabs button.active{color:#f4f3ef;}
+  }
 
   /* Print: only the print sheet is visible, in card format on A4 */
   #printSheet{display:none;}
@@ -35,7 +72,7 @@
 <div id="app" style="min-height:100vh;background:#15161a;display:flex;flex-direction:column;font-family:'IBM Plex Mono',monospace;">
 
   <!-- Topbar -->
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #2a2c31;flex:none;">
+  <div id="topbar" style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #2a2c31;flex:none;">
     <div style="display:flex;align-items:center;gap:11px;">
       <span style="width:13px;height:13px;background:#f4f3ef;transform:rotate(45deg);display:block;"></span>
       <div>
@@ -43,8 +80,8 @@
         <div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#6c6e74;text-transform:uppercase;margin-top:1px;">XY Pictures · Heinrich-Hertz-Gymnasium</div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:20px;">
-      <label style="display:flex;align-items:center;gap:9px;">
+    <div class="topbar-right" style="display:flex;align-items:center;gap:20px;">
+      <label class="film-label" style="display:flex;align-items:center;gap:9px;">
         <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;">Filmtitel</span>
         <input id="filmTitle" style="width:240px;background:#1d1f24;border:1px solid #34373e;border-radius:7px;padding:8px 11px;color:#f4f3ef;font:500 13px 'IBM Plex Mono',monospace;outline:none;">
       </label>
@@ -53,10 +90,10 @@
   </div>
 
   <!-- Main -->
-  <div style="flex:1;display:flex;min-height:0;">
+  <div id="main" data-view="list" style="flex:1;display:flex;min-height:0;">
 
     <!-- LIST -->
-    <div style="width:312px;flex:none;border-right:1px solid #2a2c31;display:flex;flex-direction:column;min-height:0;">
+    <div id="paneList" style="width:312px;flex:none;border-right:1px solid #2a2c31;display:flex;flex-direction:column;min-height:0;">
       <div style="padding:16px 16px 12px;flex:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
           <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Teilnehmer · <span id="count">0</span></span>
@@ -68,7 +105,7 @@
     </div>
 
     <!-- EDITOR -->
-    <div style="width:392px;flex:none;border-right:1px solid #2a2c31;overflow-y:auto;">
+    <div id="paneEditor" style="width:392px;flex:none;border-right:1px solid #2a2c31;overflow-y:auto;">
       <div id="editorBody" style="padding:22px 24px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Attribute bearbeiten</span>
@@ -121,7 +158,7 @@
     </div>
 
     <!-- PREVIEW -->
-    <div style="flex:1;min-width:0;overflow:auto;display:flex;align-items:center;justify-content:center;padding:40px;background:#101114;">
+    <div id="panePreview" style="flex:1;min-width:0;overflow:auto;display:flex;align-items:center;justify-content:center;padding:40px;background:#101114;">
       <div id="previewWrap" style="display:flex;flex-direction:column;gap:16px;align-items:center;">
         <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · 85 × 54 mm</div>
         <div id="previewCard"></div>
@@ -130,6 +167,13 @@
     </div>
 
   </div>
+
+  <!-- Mobile tab bar (hidden on desktop) -->
+  <nav id="mobileTabs">
+    <button type="button" data-view="list" class="active"><span class="ic"></span>Liste</button>
+    <button type="button" data-view="editor"><span class="ic"></span>Bearbeiten</button>
+    <button type="button" data-view="preview"><span class="ic"></span>Vorschau</button>
+  </nav>
 </div>
 
 <!-- ============ DRUCKBOGEN ============ -->
@@ -153,7 +197,8 @@
   const FKEY = 'tmol_filmtitle_v1';
   const DEFAULT_FILM = 'The Massacre of Love';
 
-  const state = { participants: [], selectedId: null, filmTitle: DEFAULT_FILM, q: '' };
+  const state = { participants: [], selectedId: null, filmTitle: DEFAULT_FILM, q: '', view: 'list' };
+  const isMobile = () => window.matchMedia('(max-width:760px)').matches;
 
   // ---- helpers ----
   const uid = () => 'p' + Math.random().toString(36).slice(2, 9);
@@ -198,6 +243,7 @@
     persist();
     $('search').value = '';
     renderList(); renderEditor(); renderPreview(); renderCount();
+    if (isMobile()) setView('editor');
     $('edName').focus(); $('edName').select();
   }
   function dup() {
@@ -292,6 +338,7 @@
       row.addEventListener('click', () => {
         state.selectedId = p.id;
         renderList(); renderEditor(); renderPreview();
+        if (isMobile()) setView('editor');
       });
       wrap.appendChild(row);
     });
@@ -331,6 +378,34 @@
     if (!p) { wrap.style.visibility = 'hidden'; return; }
     wrap.style.visibility = 'visible';
     $('previewCard').innerHTML = cardInnerHTML(p, state.filmTitle);
+    fitPreview();
+  }
+
+  // Scale the 520x328 card down to fit narrow (phone) screens.
+  function fitPreview() {
+    const holder = $('previewCard');
+    const inner = holder.firstElementChild;
+    if (!inner) return;
+    if (!isMobile()) {
+      inner.style.transform = '';
+      holder.style.width = '';
+      holder.style.height = '';
+      return;
+    }
+    const avail = ($('panePreview').clientWidth || window.innerWidth) - 32;
+    const s = Math.min(1, avail / 520);
+    inner.style.transformOrigin = 'top left';
+    inner.style.transform = 'scale(' + s + ')';
+    holder.style.width = (520 * s) + 'px';
+    holder.style.height = (328 * s) + 'px';
+  }
+
+  function setView(v) {
+    state.view = v;
+    $('main').dataset.view = v;
+    document.querySelectorAll('#mobileTabs button').forEach(b =>
+      b.classList.toggle('active', b.dataset.view === v));
+    if (v === 'preview') fitPreview();
   }
 
   function doPrint() {
@@ -384,6 +459,13 @@
     clickable($('btnDel'), del);
     clickable($('btnPrint'), doPrint);
 
+    // mobile tab bar
+    document.querySelectorAll('#mobileTabs button').forEach(b =>
+      b.addEventListener('click', () => setView(b.dataset.view)));
+    window.addEventListener('resize', fitPreview);
+    window.addEventListener('orientationchange', fitPreview);
+
+    setView(state.view);
     renderCount(); renderList(); renderEditor(); renderPreview();
   }
 

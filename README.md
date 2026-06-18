@@ -19,6 +19,14 @@ app in vanilla HTML/CSS/JS.
 Six departments are colour-coded: Regie, Produktion, Technik, Kostüm,
 Szenenbild and Cast.
 
+## iPhone / mobile
+
+The app is fully responsive. On phones it collapses to a single column with a
+bottom tab bar (**Liste · Bearbeiten · Vorschau**); the preview card scales to
+fit the screen and the notch / home-indicator safe areas are respected. A web
+app manifest plus Apple meta tags let you **Add to Home Screen** in Safari for a
+standalone, full-screen experience.
+
 ## Run
 
 It's a static site — just open `index.html`, or serve the folder:

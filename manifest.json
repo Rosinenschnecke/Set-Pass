@@ -1,0 +1,19 @@
+{
+  "name": "Crew-Ausweis Generator",
+  "short_name": "Crew-Ausweis",
+  "description": "Crew-ID-Karten für die XY-Pictures-Filmproduktion",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#15161a",
+  "theme_color": "#15161a",
+  "icons": [
+    {
+      "src": "assets/school-emblem-white.png",
+      "sizes": "358x358",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
