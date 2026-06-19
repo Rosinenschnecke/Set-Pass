@@ -120,16 +120,10 @@
           <input id="edName" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 15px 'IBM Plex Mono',monospace;outline:none;">
         </label>
 
-        <div style="display:flex;gap:12px;margin-bottom:15px;">
-          <label style="flex:1;">
-            <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Pronomen</span>
-            <input id="edPronouns" placeholder="sie/ihr" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 14px 'IBM Plex Mono',monospace;outline:none;">
-          </label>
-          <label style="width:108px;flex:none;">
-            <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Pass-Nr.</span>
-            <input id="edNo" placeholder="003" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 14px 'IBM Plex Mono',monospace;outline:none;">
-          </label>
-        </div>
+        <label style="display:block;margin-bottom:15px;">
+          <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Pass-Nr.</span>
+          <input id="edNo" placeholder="003" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 15px 'IBM Plex Mono',monospace;outline:none;">
+        </label>
 
         <label style="display:block;margin-bottom:15px;">
           <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Department</span>
@@ -162,7 +156,7 @@
       <div id="previewWrap" style="display:flex;flex-direction:column;gap:16px;align-items:center;">
         <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · 85 × 54 mm</div>
         <div id="previewCard"></div>
-        <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:420px;text-align:center;line-height:1.5;">QR-Code verlinkt auf den Drehplan. Über „Alle drucken“ werden alle Ausweise im Kartenformat als PDF gesetzt.</div>
+        <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:420px;text-align:center;line-height:1.5;">Über „Alle drucken“ werden alle Ausweise im Kartenformat als PDF gesetzt.</div>
       </div>
     </div>
 
@@ -283,24 +277,17 @@
       <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
         <div style="min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#cfd0d4;text-transform:uppercase;">${esc(filmTitle)}</span></div>
-          <div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;">
-            <div style="font:700 46px 'Saira Condensed',sans-serif;color:#f4f3ef;text-transform:uppercase;line-height:.94;">${esc(p.name)}</div>
-            ${p.pronouns ? `<span style="font:500 13px 'IBM Plex Mono',monospace;color:#c9cace;border:1px solid #4a4d54;border-radius:20px;padding:4px 12px;">${esc(p.pronouns)}</span>` : ``}
-          </div>
+          <div style="font:700 46px 'Saira Condensed',sans-serif;color:#f4f3ef;text-transform:uppercase;line-height:.94;">${esc(p.name)}</div>
           <div style="font:500 16px 'IBM Plex Mono',monospace;color:${d.role};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
           ${hasFilmRole ? `
           <div style="font:500 9.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div>
           <div style="font:600 23px 'Saira Condensed',sans-serif;color:${d.role};margin-top:2px;text-transform:uppercase;letter-spacing:.02em;">${esc(p.filmRole)}</div>` : ``}
         </div>
-        <div style="text-align:center;flex:none;"><img src="assets/qr-drehplan.svg" alt="QR Drehplan" style="width:82px;height:82px;display:block;border-radius:6px;background:#fff;padding:5px;box-sizing:border-box;"><div style="font:600 9px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.14em;margin-top:6px;">DREHPLAN</div></div>
+        <img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:80px;height:80px;display:block;flex:none;opacity:.95;">
       </div>
       <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid ${d.color};display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
-        <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:24px;display:block;">
-        <div style="display:flex;align-items:center;gap:13px;">
-          ${p.no ? `<span style="font:600 10px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.12em;">NO. ${esc(p.no)}</span>` : ``}
-          <span style="width:1px;height:22px;background:#3a3d43;display:block;"></span>
-          <img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="height:30px;width:30px;display:block;opacity:.9;">
-        </div>
+        <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:26px;display:block;">
+        ${p.no ? `<span style="font:600 11px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.14em;">NO. ${esc(p.no)}</span>` : ``}
       </div>
     </div>`;
   }
@@ -364,7 +351,6 @@
     $('editorBody').style.display = 'block';
     $('editorEmpty').style.display = 'none';
     $('edName').value = p.name || '';
-    $('edPronouns').value = p.pronouns || '';
     $('edNo').value = p.no || '';
     $('edDept').value = p.dept;
     $('edRole').value = p.role || '';
@@ -445,7 +431,6 @@
     });
 
     $('edName').addEventListener('input', (e) => { update('name', e.target.value); renderPreview(); renderList(); });
-    $('edPronouns').addEventListener('input', (e) => { update('pronouns', e.target.value); renderPreview(); });
     $('edNo').addEventListener('input', (e) => { update('no', e.target.value); renderPreview(); });
     $('edRole').addEventListener('input', (e) => { update('role', e.target.value); renderPreview(); });
     $('edFilmRole').addEventListener('input', (e) => { update('filmRole', e.target.value); renderPreview(); });
