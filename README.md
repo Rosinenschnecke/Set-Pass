@@ -9,12 +9,19 @@ app in vanilla HTML/CSS/JS.
 
 ## Features
 
-- **Teilnehmer-Liste** with live search and department colour bars.
-- **Editor** for each person: name, pronouns, pass number, department,
-  role/function, optional in-film role name, and `HEAD` / `MEDIA` markers.
-- **Live preview** of the crew card in credit-card format (85 × 54 mm).
-- **„Alle drucken“** lays out every card at true card size on A4 for print/PDF.
-- **Auto-save** to `localStorage` — data and film title persist in the browser.
+- **Editable table** of all participants — name, department, role/function,
+  in-film role, and markers, all edited inline.
+- **Automatic numbering** — the pass number follows the row order (001, 002, …).
+- **Reorderable rows** — drag the ⠿ handle or use the ▲▼ arrows; numbers update
+  automatically.
+- **Markers**: `HEAD` (department head), `MEDIA` (photo/video release) and a
+  golden `LEGACY` badge for crew who have taken part multiple times.
+- **Role picker** — a datalist of typical film-set jobs (free text still allowed).
+- **Live preview** of the selected crew card in credit-card format (85 × 54 mm).
+- **Printing** — „Alle drucken“ lays every card at true size on A4, and each row
+  has its own „Drucken“ button to print a single pass.
+- **Auto-save** to `localStorage` (migrates older saved data), with the film
+  title persisted too.
 
 Six departments are colour-coded: Regie, Produktion, Technik, Kostüm,
 Szenenbild and Cast.
