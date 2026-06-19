@@ -231,11 +231,11 @@
   // Dynamic name size so long names always fit (used in preview + print).
   function nameSize(name) {
     const n = (name || '').trim().length;
-    if (n <= 16) return 46;
-    if (n <= 20) return 40;
-    if (n <= 25) return 34;
-    if (n <= 30) return 28;
-    return 24;
+    if (n <= 14) return 56;
+    if (n <= 18) return 48;
+    if (n <= 23) return 40;
+    if (n <= 28) return 33;
+    return 27;
   }
 
   // ---- card markup (shared: preview + print) ----
@@ -257,9 +257,10 @@
       <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
       <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
         <div style="min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#cfd0d4;text-transform:uppercase;">${esc(filmTitle)}</span></div>
-          <div style="font:700 ${nameSize(p.name)}px 'Saira Condensed',sans-serif;color:#f4f3ef;text-transform:uppercase;line-height:.94;overflow-wrap:anywhere;">${esc(p.name)}</div>
-          <div style="font:500 16px 'IBM Plex Mono',monospace;color:${d.role};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#a7a9af;text-transform:uppercase;">${esc(filmTitle)}</span></div>
+          <div style="font:700 ${nameSize(p.name)}px 'Saira Condensed',sans-serif;color:#ffffff;text-transform:uppercase;line-height:.9;letter-spacing:.005em;overflow-wrap:anywhere;text-shadow:0 1px 8px rgba(0,0,0,.35);">${esc(p.name)}</div>
+          <div style="width:58px;height:4px;background:${d.color};margin-top:11px;"></div>
+          <div style="font:500 15px 'IBM Plex Mono',monospace;color:${d.role};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
           ${hasFilmRole ? `
           <div style="font:500 9.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div>
           <div style="font:600 23px 'Saira Condensed',sans-serif;color:${d.role};margin-top:2px;text-transform:uppercase;letter-spacing:.02em;">${esc(p.filmRole)}</div>` : ``}
