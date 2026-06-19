@@ -14,12 +14,18 @@ app in vanilla HTML/CSS/JS.
 - **Automatic numbering** — the pass number follows the row order (001, 002, …).
 - **Reorderable rows** — drag the ⠿ handle or use the ▲▼ arrows; numbers update
   automatically.
-- **Markers**: `HEAD` (department head), `MEDIA` (photo/video release) and a
-  golden `LEGACY` badge for crew who have taken part multiple times.
+- **Sort by department** — a toggle groups the table by department for overview
+  **without changing the assigned pass numbers** (numbering stays tied to the
+  manual order).
+- **Markers**: `HEAD` (department head), `LEHRER` (teacher), `MEDIA` (photo/video
+  release) and a golden `LEGACY` badge for crew who have taken part multiple times.
 - **Role picker** — a datalist of typical film-set jobs (free text still allowed).
-- **Live preview** of the selected crew card in credit-card format (85 × 54 mm).
-- **Printing** — „Alle drucken“ lays every card at true size on A4, and each row
-  has its own „Drucken“ button to print a single pass.
+- **Long names** are auto-sized down so they always fit the card.
+- **Live preview** of the selected crew card in credit-card format (85 × 54 mm),
+  with square corners for clean trimming.
+- **Printing** — „Alle drucken“ lays every card at true size on A4 (each card kept
+  whole, never split across a page break), and each row has its own „Drucken“
+  button to print a single pass.
 - **Auto-save** to `localStorage` (migrates older saved data), with the film
   title persisted too.
 
