@@ -1,11 +1,28 @@
-# Crew-Ausweis Generator
+# XY Pictures · Crew-Tools
 
-A crew ID-card ("Ausweis") generator for the school film production
-**XY Pictures · Heinrich-Hertz-Gymnasium** (film: *The Massacre of Love*).
+Two tools for the school film production **XY Pictures · Heinrich-Hertz-Gymnasium**
+(film: *The Massacre of Love*), built as one dependency-free static web app with
+two tabs that share a single **personnel database**:
 
-This is a real implementation of the Claude Design prototype
-(`design/Ausweis-Generator.dc.html`), rebuilt as a dependency-free static web
-app in vanilla HTML/CSS/JS.
+1. **Crew-Ausweise** — the crew ID-card generator (the personnel database lives here).
+2. **Set-Schilder** — A4 set signage (Aufnahme/Ruhe, Verbote, Wegweiser, Pfeile,
+   Gefahr, Crew-Liste, Telefonliste, Set-Regeln, Drehplan-Aushang, Drehtag-Trenner,
+   Fortschritt) in two styles (dark/light), portrait/landscape, with compare and
+   full-page printing.
+
+Both tabs implement the Claude Design prototypes
+(`design/Ausweis-Generator.dc.html`, `design/Set-Schilder.dc.html` + `Schild.dc.html`).
+
+## Shared personnel database
+
+A single people store is the source of truth. The Ausweise tab edits it; the
+Set-Schilder **„Crew am Set"** name list is generated **automatically** from it —
+add a person and they appear on that sign instantly. Everything is auto-saved.
+
+> **Storage note:** data is stored in the browser (`localStorage`) behind a small
+> storage layer. That means it persists per device/browser but is **not** shared
+> across devices yet. A true global/shared database needs a backend (e.g. Supabase
+> or Firebase) — the storage layer is structured so that can be dropped in.
 
 ## Features
 

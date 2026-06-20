@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Crew-Ausweis Generator · XY Pictures</title>
+<title>XY Pictures · Crew-Tools</title>
 <meta name="theme-color" content="#15161a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Crew-Ausweis">
+<meta name="apple-mobile-web-app-title" content="Crew-Tools">
 <link rel="apple-touch-icon" href="assets/school-emblem-white.png">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +18,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:#15161a;font-family:'IBM Plex Mono',monospace;color:#f4f3ef;}
   input,select,textarea{font-family:'IBM Plex Mono',monospace;}
-  input:focus,select:focus{border-color:#6c6e74 !important;}
+  input:focus,select:focus,textarea:focus{border-color:#6c6e74 !important;}
   ::placeholder{color:#5a5d64;}
   ::-webkit-scrollbar{width:10px;height:10px;}
   ::-webkit-scrollbar-thumb{background:#2a2d33;border-radius:6px;}
@@ -26,46 +26,48 @@
 
   .inp,.sel{width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:7px;padding:8px 9px;color:#f4f3ef;font:500 13px 'IBM Plex Mono',monospace;outline:none;}
   .sel{cursor:pointer;}
+  .lbl{font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;}
 
-  /* ---- Table ---- */
+  .act{cursor:pointer;display:inline-flex;align-items:center;border:1px solid #34373e;background:#1d1f24;color:#c9cace;border-radius:6px;padding:6px 9px;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.04em;user-select:none;white-space:nowrap;}
+  .act:hover{border-color:#6c6e74;}
+  .act.del{color:oklch(0.72 0.15 25);border-color:#43282b;}
+  .act.primary{background:#f4f3ef;color:#15161a;border-color:#f4f3ef;font-weight:700;}
+
+  /* tabs */
+  #tabs{display:flex;gap:4px;background:#1a1c20;border:1px solid #34373e;border-radius:9px;padding:3px;}
+  .tab{cursor:pointer;border-radius:7px;padding:8px 16px;font:700 12px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#8a8d94;user-select:none;}
+  .tab.on{background:#f4f3ef;color:#15161a;}
+
+  /* people table */
   table.crew{width:100%;min-width:1120px;border-collapse:collapse;}
   .crew thead th{position:sticky;top:0;z-index:3;background:#15161a;text-align:left;padding:12px 10px;font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a8d94;text-transform:uppercase;border-bottom:1px solid #2a2c31;white-space:nowrap;}
   .crew tbody td{padding:8px 10px;border-bottom:1px solid #24262b;vertical-align:middle;}
   .crew tbody tr:hover{background:#1a1c21;}
   .crew tbody tr.sel{background:#1c2733;}
   .crew tbody tr.sel:hover{background:#1c2733;}
-
   .ord{display:flex;align-items:center;gap:8px;}
   .grip{cursor:grab;color:#5a5d64;font-size:16px;line-height:1;user-select:none;}
   .grip:active{cursor:grabbing;}
   .arrow{display:flex;flex-direction:column;gap:2px;}
   .arr{cursor:pointer;color:#8a8d94;font-size:8px;line-height:1;border:1px solid #34373e;border-radius:4px;padding:2px 4px;background:#1a1c20;user-select:none;}
   .arr:hover{border-color:#6c6e74;color:#f4f3ef;}
-
-  .act{cursor:pointer;display:inline-flex;align-items:center;border:1px solid #34373e;background:#1d1f24;color:#c9cace;border-radius:6px;padding:6px 9px;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.04em;user-select:none;white-space:nowrap;}
-  .act:hover{border-color:#6c6e74;}
-  .act.del{color:oklch(0.72 0.15 25);border-color:#43282b;}
-  .act.del:hover{border-color:oklch(0.6 0.16 25);}
-  .act.primary{background:#f4f3ef;color:#15161a;border-color:#f4f3ef;font-weight:700;}
-
-  /* ---- Layout ---- */
-  #app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;}
-  #previewPane{align-self:flex-start;position:sticky;top:0;}
+  .mark{cursor:pointer;border-radius:6px;padding:5px 8px;font:700 9.5px 'IBM Plex Mono',monospace;letter-spacing:.06em;user-select:none;white-space:nowrap;}
 
   @media (max-width:1100px){
-    #main{flex-direction:column;}
-    #previewPane{width:100% !important;border-left:none !important;border-top:1px solid #2a2c31;position:static;align-self:stretch;}
+    .splitMain{flex-direction:column !important;}
+    .previewPane{width:100% !important;border-left:none !important;border-top:1px solid #2a2c31;position:static !important;align-self:stretch !important;}
   }
   @media (max-width:760px){
     #topbar{flex-wrap:wrap;gap:12px;padding-top:calc(12px + env(safe-area-inset-top)) !important;}
-    #topbar .topbar-right{width:100%;gap:12px;}
-    #filmTitle{flex:1;width:auto !important;}
+    #topbar .tb-right{width:100%;gap:10px;flex-wrap:wrap;}
   }
 
-  /* Print: only the print sheet shows, cards at true size on A4 */
+  /* Print */
   #printSheet{display:none;}
+  @page{size:A4 portrait;margin:8mm;}
+  @page p_portrait{size:A4 portrait;margin:0;}
+  @page p_land{size:A4 landscape;margin:0;}
   @media print{
-    @page{size:A4 portrait;margin:8mm;}
     #app{display:none !important;}
     #printSheet{display:block !important;}
     *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
@@ -74,79 +76,101 @@
 </head>
 <body>
 
-<div id="app">
+<div id="app" style="min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;">
 
-  <!-- Topbar -->
-  <div id="topbar" style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #2a2c31;flex:none;">
-    <div style="display:flex;align-items:center;gap:11px;">
-      <span style="width:13px;height:13px;background:#f4f3ef;transform:rotate(45deg);display:block;"></span>
-      <div>
-        <div style="font:700 18px 'Saira Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#f4f3ef;">Crew-Ausweis Generator</div>
-        <div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#6c6e74;text-transform:uppercase;margin-top:1px;">XY Pictures · Heinrich-Hertz-Gymnasium</div>
-      </div>
-    </div>
-    <div class="topbar-right" style="display:flex;align-items:center;gap:20px;">
-      <label style="display:flex;align-items:center;gap:9px;">
-        <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;">Filmtitel</span>
-        <input id="filmTitle" style="width:240px;background:#1d1f24;border:1px solid #34373e;border-radius:7px;padding:8px 11px;color:#f4f3ef;font:500 13px 'IBM Plex Mono',monospace;outline:none;">
-      </label>
-      <div id="btnPrintAll" class="act primary" role="button" tabindex="0" style="padding:10px 18px;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;margin-right:8px;"></span>ALLE DRUCKEN</div>
-    </div>
-  </div>
-
-  <!-- Main: table + preview -->
-  <div id="main" style="flex:1;display:flex;min-height:0;">
-
-    <!-- TABLE -->
-    <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #2a2c31;flex:none;">
-        <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Teilnehmer · <span id="count">0</span></span>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div id="btnSortDept" class="act" role="button" tabindex="0" style="padding:8px 14px;">Nach Department sortieren</div>
-          <div id="btnAdd" class="act" role="button" tabindex="0" style="padding:8px 14px;font-weight:700;">+ NEU</div>
+  <!-- Global topbar -->
+  <div id="topbar" style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 24px;border-bottom:1px solid #2a2c31;flex:none;">
+    <div style="display:flex;align-items:center;gap:18px;">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <span style="width:13px;height:13px;background:#f4f3ef;transform:rotate(45deg);display:block;"></span>
+        <div>
+          <div style="font:700 17px 'Saira Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#f4f3ef;">XY Pictures · Crew-Tools</div>
+          <div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#6c6e74;text-transform:uppercase;margin-top:1px;">Heinrich-Hertz-Gymnasium</div>
         </div>
       </div>
-      <div style="flex:1;overflow:auto;min-height:0;">
-        <table class="crew">
-          <thead>
-            <tr>
-              <th style="width:64px;">Sort.</th>
-              <th style="width:48px;">Nr.</th>
-              <th style="min-width:170px;">Name</th>
-              <th style="width:160px;">Department</th>
-              <th style="min-width:190px;">Rolle / Funktion</th>
-              <th style="min-width:160px;">Rolle im Film</th>
-              <th style="width:316px;">Markierungen</th>
-              <th style="width:230px;">Aktionen</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
+      <div id="tabs">
+        <div class="tab on" data-tab="ausweise">Crew-Ausweise</div>
+        <div class="tab" data-tab="schilder">Set-Schilder</div>
       </div>
     </div>
-
-    <!-- PREVIEW -->
-    <div id="previewPane" style="width:564px;flex:none;border-left:1px solid #2a2c31;background:#101114;padding:32px 22px;display:flex;align-items:flex-start;justify-content:center;">
-      <div id="previewWrap" style="display:flex;flex-direction:column;gap:16px;align-items:center;">
-        <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · 85 × 54 mm</div>
-        <div id="previewCard"></div>
-        <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:420px;text-align:center;line-height:1.5;">Wähle links eine Zeile, um den Pass anzusehen. „Drucken“ pro Zeile druckt einen einzelnen Pass, „Alle drucken“ den gesamten Bogen.</div>
-      </div>
+    <div class="tb-right" style="display:flex;align-items:center;gap:16px;">
+      <label style="display:flex;align-items:center;gap:9px;">
+        <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;">Filmtitel</span>
+        <input id="filmTitle" style="width:210px;background:#1d1f24;border:1px solid #34373e;border-radius:7px;padding:8px 11px;color:#f4f3ef;font:500 13px 'IBM Plex Mono',monospace;outline:none;">
+      </label>
     </div>
-
   </div>
+
+  <!-- ================= AUSWEISE ================= -->
+  <div id="viewAusweise" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #2a2c31;flex:none;flex-wrap:wrap;">
+      <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Personal · <span id="auCount">0</span></span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div id="auSort" class="act" role="button" tabindex="0" style="padding:8px 14px;">Nach Department sortieren</div>
+        <div id="auAdd" class="act" role="button" tabindex="0" style="padding:8px 14px;font-weight:700;">+ NEU</div>
+        <div id="auPrintAll" class="act primary" role="button" tabindex="0" style="padding:8px 14px;"><span style="width:7px;height:7px;background:#15161a;transform:rotate(45deg);display:block;margin-right:7px;"></span>ALLE DRUCKEN</div>
+      </div>
+    </div>
+    <div class="splitMain" style="flex:1;display:flex;min-height:0;">
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;">
+        <div style="flex:1;overflow:auto;min-height:0;">
+          <table class="crew">
+            <thead><tr>
+              <th style="width:64px;">Sort.</th><th style="width:48px;">Nr.</th><th style="min-width:170px;">Name</th>
+              <th style="width:160px;">Department</th><th style="min-width:190px;">Rolle / Funktion</th>
+              <th style="min-width:160px;">Rolle im Film</th><th style="width:316px;">Markierungen</th><th style="width:230px;">Aktionen</th>
+            </tr></thead>
+            <tbody id="auTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="auPreviewPane" class="previewPane" style="width:564px;flex:none;border-left:1px solid #2a2c31;background:#101114;padding:32px 22px;display:flex;align-items:flex-start;justify-content:center;position:sticky;top:0;align-self:flex-start;">
+        <div id="auPreviewWrap" style="display:flex;flex-direction:column;gap:16px;align-items:center;">
+          <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · 85 × 54 mm</div>
+          <div id="auPreviewCard"></div>
+          <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:420px;text-align:center;line-height:1.5;">Dies ist die zentrale Personal-Datenbank. Sie speist die Ausweise <b>und</b> die Namensliste im Set-Schilder-Tab.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SCHILDER ================= -->
+  <div id="viewSchilder" style="flex:1;display:none;flex-direction:column;min-height:0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid #2a2c31;flex:none;flex-wrap:wrap;">
+      <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Schilder · <span id="scCount">0</span></span>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;background:#1a1c20;border:1px solid #34373e;border-radius:8px;padding:3px;gap:3px;">
+          <div class="act" data-sc-act="styleA" id="scStyleA" style="border:none;">STIL A · DUNKEL</div>
+          <div class="act" data-sc-act="styleB" id="scStyleB" style="border:none;">STIL B · HELL</div>
+        </div>
+        <div class="act" data-sc-act="compare" id="scCompare" style="padding:8px 13px;">VERGLEICHEN</div>
+        <div class="act" data-sc-act="printOne" style="padding:8px 13px;">DIESES DRUCKEN</div>
+        <div class="act primary" data-sc-act="printAll" style="padding:8px 14px;"><span style="width:7px;height:7px;background:#15161a;transform:rotate(45deg);display:block;margin-right:7px;"></span>ALLE DRUCKEN</div>
+        <div class="act" data-sc-act="add" style="padding:8px 14px;font-weight:700;">+ NEU</div>
+      </div>
+    </div>
+    <div class="splitMain" style="flex:1;display:flex;min-height:0;">
+      <div style="width:284px;flex:none;border-right:1px solid #2a2c31;overflow-y:auto;" id="scList"></div>
+      <div style="width:372px;flex:none;border-right:1px solid #2a2c31;overflow-y:auto;" id="scEditor"></div>
+      <div class="previewPane" id="scPreviewPane" style="flex:1;min-width:0;overflow:auto;display:flex;align-items:center;justify-content:center;padding:30px;background:#101114;">
+        <div id="scPreview"></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
-<!-- ============ DRUCKBOGEN ============ -->
-<div id="printSheet" style="background:#fff;padding:8mm;font-size:0;"></div>
-
+<div id="printSheet"></div>
 <datalist id="roleList"></datalist>
 
 <script>
 (() => {
   "use strict";
   const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  const pad = (n) => String(n).padStart(3, '0');
 
+  /* ===================== shared data ===================== */
   const DEPTS = {
     RG:{name:'Regie',      color:'oklch(0.66 0.2 25)',  band:'#15161a', role:'oklch(0.74 0.13 25)'},
     PR:{name:'Produktion', color:'oklch(0.79 0.16 80)', band:'#15161a', role:'oklch(0.85 0.1 80)'},
@@ -155,98 +179,91 @@
     SZ:{name:'Szenenbild', color:'oklch(0.64 0.2 330)', band:'#f4f3ef', role:'oklch(0.78 0.13 330)'},
     CA:{name:'Cast',       color:'oklch(0.58 0.19 290)',band:'#f4f3ef', role:'oklch(0.8 0.12 290)'},
   };
+  const dept = (c) => DEPTS[c] || DEPTS.TE;
+  const ROLES = ['Regie','Regieassistenz','Aufnahmeleitung','Produktionsleitung','Produktionsassistenz','Drehbuch','Script / Continuity','Kamera / DOP','Kameraassistenz / Focus Puller','2nd AC / Clapper Loader','DIT','Oberbeleuchter / Gaffer','Beleuchter / Best Boy','Grip / Bühne','Ton / Tonmeister','Angel / Boom Operator','Szenenbild','Ausstattung / Set Decoration','Requisite / Props','Kostümbild','Garderobe','Maske / Make-up','Schnitt / Editor','VFX','Colorist','Sounddesign','Musik / Komponist','Standfotografie','Making-of','Catering','Transport / Fahrer','Darsteller/in','Komparse / Statist','Hospitanz'];
 
-  const ROLES = [
-    'Regie','Regieassistenz','Aufnahmeleitung','Produktionsleitung','Produktionsassistenz',
-    'Drehbuch','Script / Continuity',
-    'Kamera / DOP','Kameraassistenz / Focus Puller','2nd AC / Clapper Loader','DIT',
-    'Oberbeleuchter / Gaffer','Beleuchter / Best Boy','Grip / Bühne',
-    'Ton / Tonmeister','Angel / Boom Operator',
-    'Szenenbild','Ausstattung / Set Decoration','Requisite / Props',
-    'Kostümbild','Garderobe','Maske / Make-up',
-    'Schnitt / Editor','VFX','Colorist','Sounddesign','Musik / Komponist',
-    'Standfotografie','Making-of','Catering','Transport / Fahrer',
-    'Darsteller/in','Komparse / Statist','Hospitanz',
-  ];
+  const KINDS = {
+    alert:{fam:'hero',glyph:'rec',cat:'stop',orient:'L',eyebrow:'Aufnahme'},
+    prohibit:{fam:'hero',glyph:'ban',cat:'warn',orient:'P',eyebrow:'Bitte beachten'},
+    access:{fam:'hero',glyph:'badge',cat:'crew',orient:'P',eyebrow:'Crew only'},
+    wayfind:{fam:'hero',glyph:'none',cat:'info',orient:'P',eyebrow:'Wegweiser'},
+    hazard:{fam:'hero',glyph:'hazard',cat:'warn',orient:'L',eyebrow:'Achtung'},
+    arrow:{fam:'hero',glyph:'arrow',cat:'info',orient:'L',eyebrow:'Wegweiser'},
+    namelist:{fam:'list',cat:'crew',orient:'P',eyebrow:'Crew-Liste',cols:['Name','Department','Ausweis']},
+    phonelist:{fam:'list',cat:'info',orient:'P',eyebrow:'Kontakte',cols:['Rolle','Name','Telefon']},
+    rules:{fam:'rules',cat:'crew',orient:'P',eyebrow:'Set-Regeln',cols:['Regel']},
+    callsheet:{fam:'callsheet',cat:'info',orient:'P',eyebrow:'Drehplan',cols:['Feld','Wert']},
+    daydivider:{fam:'day',cat:'crew',orient:'P',eyebrow:'Drehtag'},
+    progress:{fam:'progress',cat:'go',orient:'P',eyebrow:'Fortschritt'},
+  };
+  const KIND_LABELS = {alert:'Ruhe / Aufnahme läuft',prohibit:'Kamera & Handy aus',access:'Zutritt nur Crew',wayfind:'Wegweiser / Raum',hazard:'Achtung Kabel',arrow:'Pfeil / Richtung',namelist:'Namensliste (Personal)',phonelist:'Telefonliste',rules:'Set-Regeln',callsheet:'Drehplan-Aushang',daydivider:'Drehtag-Trenner',progress:'Fortschritt'};
+  const CATS = {
+    stop:{c:'oklch(0.6 0.21 25)',fg:'#ffffff',name:'Stop / Aufnahme'},
+    warn:{c:'oklch(0.8 0.16 78)',fg:'#1a1206',name:'Achtung / Warnung'},
+    info:{c:'oklch(0.62 0.13 245)',fg:'#ffffff',name:'Info / Wegweiser'},
+    go:{c:'oklch(0.72 0.15 155)',fg:'#0c1410',name:'Go / Pause'},
+    crew:{c:'oklch(0.6 0.18 290)',fg:'#ffffff',name:'Crew / Intern'},
+  };
 
-  const KEY = 'tmol_participants_v2';
-  const KEY_OLD = 'tmol_participants_v1';
-  const FKEY = 'tmol_filmtitle_v1';
-  const DEFAULT_FILM = 'The Massacre of Love';
+  const FILM_DEFAULT = 'The Massacre of Love';
+  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A' };
 
-  const state = { participants: [], selectedId: null, filmTitle: DEFAULT_FILM, dragId: null, sortByDept: false };
+  /* ===================== storage layer ===================== */
+  // Single local "database". Swap these for a cloud adapter (e.g. Supabase REST)
+  // to get true cross-device storage — same shape, just async.
+  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1' };
+  const uid = (p) => p + Math.random().toString(36).slice(2, 9);
 
-  // ---- helpers ----
-  const uid = () => 'p' + Math.random().toString(36).slice(2, 9);
-  const pad = (n) => String(n).padStart(3, '0');
-  const esc = (s) => String(s == null ? '' : s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  const dept = (code) => DEPTS[code] || DEPTS.TE;
-  const idx = (id) => state.participants.findIndex(p => p.id === id);
-  const byId = (id) => state.participants.find(p => p.id === id);
+  function normPerson(p){ return { id:p.id||uid('p'), name:p.name||'', dept:DEPTS[p.dept]?p.dept:'TE', role:p.role||'', filmRole:p.filmRole||'', head:!!p.head, media:!!p.media, legacy:!!p.legacy, lehrer:!!p.lehrer }; }
 
-  function seed() {
-    return [
-      {id:uid(),name:'Lena Vogt',   dept:'RG', role:'Regie',        filmRole:'',                head:true,  media:true,  legacy:true,  lehrer:false},
-      {id:uid(),name:'Jonas Brandt',dept:'TE', role:'Kamera / DOP', filmRole:'',                head:true,  media:false, legacy:false, lehrer:false},
-      {id:uid(),name:'Sam Reue',    dept:'KO', role:'Kostümbild',   filmRole:'',                head:false, media:false, legacy:true,  lehrer:false},
-      {id:uid(),name:'Mara Vesper', dept:'CA', role:'Darstellerin', filmRole:'Detektivin Halm', head:false, media:false, legacy:false, lehrer:false},
-      {id:uid(),name:'Dr. Bär',     dept:'PR', role:'Projektleitung',filmRole:'',               head:false, media:false, legacy:true,  lehrer:true },
-    ];
-  }
+  function seedPeople(){ return [
+    {id:uid('p'),name:'Lena Vogt',dept:'RG',role:'Regie',filmRole:'',head:true,media:true,legacy:true,lehrer:false},
+    {id:uid('p'),name:'Jonas Brandt',dept:'TE',role:'Kamera / DOP',filmRole:'',head:true,media:false,legacy:false,lehrer:false},
+    {id:uid('p'),name:'Sam Reue',dept:'KO',role:'Kostümbild',filmRole:'',head:false,media:false,legacy:true,lehrer:false},
+    {id:uid('p'),name:'Mara Vesper',dept:'CA',role:'Darstellerin',filmRole:'Detektivin Halm',head:false,media:false,legacy:false,lehrer:false},
+    {id:uid('p'),name:'Dr. Bär',dept:'PR',role:'Projektleitung',filmRole:'',head:false,media:false,legacy:true,lehrer:true},
+  ]; }
+  function seedSigns(){ return [
+    {id:uid('s'),kind:'alert',cat:'stop',orient:'L',title:'Ruhe bitte',subtitle:'Aufnahme läuft – ab jetzt absolute Stille.',note:'Wenn die rote Lampe leuchtet: nicht reden, nicht durchgehen, Handys lautlos.'},
+    {id:uid('s'),kind:'prohibit',cat:'warn',orient:'P',title:'Kamera & Handy aus',subtitle:'Kein Fotografieren, kein Filmen, keine Handys am Set.',note:'Was hier entsteht, zeigen wir gemeinsam – nicht vorher.'},
+    {id:uid('s'),kind:'access',cat:'crew',orient:'P',title:'Set – Zutritt nur mit Crew-Ausweis',subtitle:'Bitte Ausweis sichtbar tragen.',note:'Kein Ausweis? Kurz bei der Produktionsleitung melden.'},
+    {id:uid('s'),kind:'wayfind',cat:'info',orient:'P',title:'Garderobe & Maske',subtitle:'Bitte leise – hier wird konzentriert gearbeitet.',note:''},
+    {id:uid('s'),kind:'wayfind',cat:'go',orient:'P',title:'Catering & Crew-Pause',subtitle:'Durchatmen, Energie tanken, Teller zurückstellen.',note:'Gut versorgt entstehen die besten Szenen.'},
+    {id:uid('s'),kind:'hazard',cat:'warn',orient:'L',title:'Achtung Kabel',subtitle:'Stolpergefahr – bitte langsam und aufmerksam gehen.',note:'Kabel nicht abgeklebt? Kurz bei der Technik Bescheid geben.'},
+    {id:uid('s'),kind:'arrow',cat:'info',orient:'L',title:'Zum Set',subtitle:'',note:'',arrow:'R'},
+    {id:uid('s'),kind:'namelist',cat:'crew',orient:'P',title:'Crew am Set',subtitle:'Wer heute am Set ist – Ausweis bitte sichtbar tragen.'},
+    {id:uid('s'),kind:'phonelist',cat:'info',orient:'P',title:'Wichtige Nummern',subtitle:'Im Zweifel: erst anrufen, dann handeln.',rows:[{a:'Produktionsleitung',b:'Lena Vogt',c:'0151 234 567'},{a:'1. Regieassistenz',b:'Jonas Brandt',c:'0151 234 568'},{a:'Set-Aufsicht / Schule',b:'Hr. Albers',c:'030 555 0123'},{a:'Hausmeister',b:'Hr. Pohl',c:'030 555 0144'},{a:'Notruf',b:'Rettung / Feuerwehr',c:'112'}]},
+    {id:uid('s'),kind:'callsheet',cat:'info',orient:'P',title:'Drehplan – heute',subtitle:'Alle Zeiten & Szenen stehen im digitalen Drehplan.',rows:[{a:'Datum',b:'Mo · 14. Juli'},{a:'Crew-Call',b:'08:00 Uhr'},{a:'1. Klappe',b:'09:00 Uhr'},{a:'Drehort',b:'Aula / Raum 1.04'},{a:'Wrap geplant',b:'17:30 Uhr'}],note:'Änderungen kommen in den Drehplan – bitte morgens kurz checken.'},
+    {id:uid('s'),kind:'daydivider',cat:'crew',orient:'P',title:'Drehtag',dayNum:'03',dayWeek:'Montag',dayDate:'14. Juli',totalDays:'8',note:'Jeder Tag bringt uns der Premiere näher. Heute geben wir alles!'},
+    {id:uid('s'),kind:'progress',cat:'go',orient:'P',title:'Im Kasten',done:'18',total:'40',unit:'Szenen',note:'Jede abgedrehte Szene ist ein Schritt Richtung Leinwand.'},
+    {id:uid('s'),kind:'rules',cat:'crew',orient:'P',title:'Set-Regeln',subtitle:'Damit alle gerne und sicher arbeiten.',rows:[{a:'Bei „Ruhe bitte" ab sofort nur noch flüstern – bis „Danke".'},{a:'Crew-Ausweis immer sichtbar tragen.'},{a:'Handys lautlos. Kein Filmen oder Fotografieren am Set.'},{a:'Auf Kabel & Technik achten – nichts ohne Absprache bewegen.'},{a:'Eigenen Müll mitnehmen, Set sauber halten.'},{a:'Respektvoll, pünktlich, hilfsbereit – wir sind ein Team.'}]},
+  ]; }
 
-  function normalize(p) {
-    return {
-      id: p.id || uid(),
-      name: p.name || '',
-      dept: DEPTS[p.dept] ? p.dept : 'TE',
-      role: p.role || '',
-      filmRole: p.filmRole || '',
-      head: !!p.head, media: !!p.media, legacy: !!p.legacy, lehrer: !!p.lehrer,
-    };
-  }
+  const Store = {
+    load(){
+      let p=null,s=null;
+      try{ p=JSON.parse(localStorage.getItem(K.people)); }catch(e){}
+      try{ s=JSON.parse(localStorage.getItem(K.signs)); if(!Array.isArray(s)) s=JSON.parse(localStorage.getItem(K.signsOld)); }catch(e){}
+      DB.people = (Array.isArray(p)&&p.length? p : seedPeople()).map(normPerson);
+      DB.signs = (Array.isArray(s)&&s.length? s : seedSigns());
+      DB.filmTitle = (()=>{ try{ return localStorage.getItem(K.film)||FILM_DEFAULT; }catch(e){ return FILM_DEFAULT; } })();
+      DB.signStyle = (()=>{ try{ return localStorage.getItem(K.style)||'A'; }catch(e){ return 'A'; } })();
+    },
+    savePeople(){ try{ localStorage.setItem(K.people, JSON.stringify(DB.people)); }catch(e){} },
+    saveSigns(){ try{ localStorage.setItem(K.signs, JSON.stringify(DB.signs)); }catch(e){} },
+    saveFilm(){ try{ localStorage.setItem(K.film, DB.filmTitle); }catch(e){} },
+    saveStyle(){ try{ localStorage.setItem(K.style, DB.signStyle); }catch(e){} },
+  };
 
-  function load() {
-    let saved = null, ft = null;
-    try { saved = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-    if (!Array.isArray(saved)) {
-      // migrate from v1 (had manual no / pronouns; numbering is now automatic)
-      let old = null;
-      try { old = JSON.parse(localStorage.getItem(KEY_OLD)); } catch (e) {}
-      saved = (Array.isArray(old) && old.length) ? old : seed();
-    }
-    try { ft = localStorage.getItem(FKEY); } catch (e) {}
-    state.participants = saved.map(normalize);
-    state.selectedId = state.participants[0] ? state.participants[0].id : null;
-    state.filmTitle = ft || DEFAULT_FILM;
-  }
-
-  function persist() {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(state.participants));
-      localStorage.setItem(FKEY, state.filmTitle);
-    } catch (e) {}
-  }
-
-  // Dynamic name size so long names always fit (used in preview + print).
-  function nameSize(name) {
-    const n = (name || '').trim().length;
-    if (n <= 14) return 56;
-    if (n <= 18) return 48;
-    if (n <= 23) return 40;
-    if (n <= 28) return 33;
-    return 27;
-  }
-
-  // ---- card markup (shared: preview + print) ----
-  function cardInnerHTML(p, filmTitle, no) {
-    const d = dept(p.dept);
-    const hasFilmRole = !!(p.filmRole && String(p.filmRole).trim());
-    const badges = [
-      p.head   ? `<span style="display:inline-flex;align-items:center;gap:6px;background:#f4f3ef;border-radius:5px;padding:5px 10px;font:700 11px 'IBM Plex Mono',monospace;color:#15161a;letter-spacing:.08em;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;"></span>HEAD</span>` : ``,
-      p.lehrer ? `<span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.12 300);border-radius:5px;padding:5px 10px;color:#211433;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M12 3 1 9l11 6 9-4.9V17h2V9L12 3zM5 13.2v3.3c0 1.5 3.1 3 7 3s7-1.5 7-3v-3.3l-7 3.8-7-3.8z"/></svg><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">LEHRER</span></span>` : ``,
-      p.media  ? `<span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.13 200);border-radius:5px;padding:5px 10px;color:#0c1414;"><span style="width:10px;height:15px;border:2px solid #0c1414;border-radius:2px;display:block;"></span><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">MEDIA</span></span>` : ``,
-      p.legacy ? `<span style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#f6dd8b,#d4af37);border-radius:5px;padding:5px 10px;color:#3a2c05;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M4 5l2.5 3H9L6.5 5H8l2.5 3h2L10 5h1.5L14 8h2l-2.5-3H20a1 1 0 0 1 1 1v3H3V6a1 1 0 0 1 1-1zM3 11h18v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">LEGACY</span></span>` : ``,
+  /* ===================== AUSWEIS card ===================== */
+  function nameSize(name){ const n=(name||'').trim().length; if(n<=14)return 56; if(n<=18)return 48; if(n<=23)return 40; if(n<=28)return 33; return 27; }
+  function auCardHTML(p, no){
+    const d=dept(p.dept); const hasFilmRole=!!(p.filmRole&&String(p.filmRole).trim());
+    const badges=[
+      p.head?`<span style="display:inline-flex;align-items:center;gap:6px;background:#f4f3ef;border-radius:5px;padding:5px 10px;font:700 11px 'IBM Plex Mono',monospace;color:#15161a;letter-spacing:.08em;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;"></span>HEAD</span>`:'',
+      p.lehrer?`<span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.12 300);border-radius:5px;padding:5px 10px;color:#211433;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M12 3 1 9l11 6 9-4.9V17h2V9L12 3zM5 13.2v3.3c0 1.5 3.1 3 7 3s7-1.5 7-3v-3.3l-7 3.8-7-3.8z"/></svg><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">LEHRER</span></span>`:'',
+      p.media?`<span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.13 200);border-radius:5px;padding:5px 10px;color:#0c1414;"><span style="width:10px;height:15px;border:2px solid #0c1414;border-radius:2px;display:block;"></span><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">MEDIA</span></span>`:'',
+      p.legacy?`<span style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#f6dd8b,#d4af37);border-radius:5px;padding:5px 10px;color:#3a2c05;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M4 5l2.5 3H9L6.5 5H8l2.5 3h2L10 5h1.5L14 8h2l-2.5-3H20a1 1 0 0 1 1 1v3H3V6a1 1 0 0 1 1-1zM3 11h18v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">LEGACY</span></span>`:'',
     ].join('');
     return `
     <div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:#26282d;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
@@ -257,13 +274,11 @@
       <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
       <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
         <div style="min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#a7a9af;text-transform:uppercase;">${esc(filmTitle)}</span></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#a7a9af;text-transform:uppercase;">${esc(DB.filmTitle)}</span></div>
           <div style="font:700 ${nameSize(p.name)}px 'Saira Condensed',sans-serif;color:#ffffff;text-transform:uppercase;line-height:.9;letter-spacing:.005em;overflow-wrap:anywhere;text-shadow:0 1px 8px rgba(0,0,0,.35);">${esc(p.name)}</div>
           <div style="width:58px;height:4px;background:${d.color};margin-top:11px;"></div>
           <div style="font:500 15px 'IBM Plex Mono',monospace;color:${d.role};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
-          ${hasFilmRole ? `
-          <div style="font:500 9.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div>
-          <div style="font:600 23px 'Saira Condensed',sans-serif;color:${d.role};margin-top:2px;text-transform:uppercase;letter-spacing:.02em;">${esc(p.filmRole)}</div>` : ``}
+          ${hasFilmRole?`<div style="font:500 9.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div><div style="font:600 23px 'Saira Condensed',sans-serif;color:${d.role};margin-top:2px;text-transform:uppercase;letter-spacing:.02em;">${esc(p.filmRole)}</div>`:''}
         </div>
         <img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:80px;height:80px;display:block;flex:none;opacity:.95;">
       </div>
@@ -274,288 +289,318 @@
     </div>`;
   }
 
-  // ---- table ----
-  function deptOptions(code) {
-    return Object.keys(DEPTS).map(k => `<option value="${k}"${k === code ? ' selected' : ''}>${esc(DEPTS[k].name)}</option>`).join('');
-  }
+  /* ===================== AUSWEIS view ===================== */
+  const AU = { selectedId:null, sortByDept:false, dragId:null };
+  const pIdx = (id) => DB.people.findIndex(p=>p.id===id);
+  const pById = (id) => DB.people.find(p=>p.id===id);
 
-  function markStyle(type, on) {
-    const base = "cursor:pointer;border-radius:6px;padding:5px 8px;font:700 9.5px 'IBM Plex Mono',monospace;letter-spacing:.06em;user-select:none;white-space:nowrap;";
-    if (!on) return base + "border:1px solid #34373e;background:#1a1c20;color:#8a8d94;";
-    if (type === 'head')   return base + "border:1px solid #f4f3ef;background:#f4f3ef;color:#15161a;";
-    if (type === 'media')  return base + "border:1px solid oklch(0.8 0.13 200);background:oklch(0.8 0.13 200);color:#0c1414;";
-    if (type === 'legacy') return base + "border:1px solid #d4af37;background:linear-gradient(135deg,#f6dd8b,#d4af37);color:#3a2c05;";
-    if (type === 'lehrer') return base + "border:1px solid oklch(0.8 0.12 300);background:oklch(0.8 0.12 300);color:#211433;";
-    return base;
-  }
+  function deptOptions(code){ return Object.keys(DEPTS).map(k=>`<option value="${k}"${k===code?' selected':''}>${esc(DEPTS[k].name)}</option>`).join(''); }
+  function markStyle(type,on){ const b="cursor:pointer;border-radius:6px;padding:5px 8px;font:700 9.5px 'IBM Plex Mono',monospace;letter-spacing:.06em;user-select:none;white-space:nowrap;";
+    if(!on) return b+"border:1px solid #34373e;background:#1a1c20;color:#8a8d94;";
+    if(type==='head') return b+"border:1px solid #f4f3ef;background:#f4f3ef;color:#15161a;";
+    if(type==='media') return b+"border:1px solid oklch(0.8 0.13 200);background:oklch(0.8 0.13 200);color:#0c1414;";
+    if(type==='legacy') return b+"border:1px solid #d4af37;background:linear-gradient(135deg,#f6dd8b,#d4af37);color:#3a2c05;";
+    if(type==='lehrer') return b+"border:1px solid oklch(0.8 0.12 300);background:oklch(0.8 0.12 300);color:#211433;";
+    return b; }
 
-  function rowHTML(p) {
-    const d = dept(p.dept);
-    const orderCell = state.sortByDept
-      ? `<span class="grip" style="cursor:default;color:#3a3d44;" title="Sortierung nach Department aktiv – zum manuellen Sortieren ausschalten">⠿</span>`
-      : `<div class="ord">
-          <span class="grip" draggable="true" title="Ziehen zum Sortieren">⠿</span>
-          <span class="arrow">
-            <span class="arr" data-id="${p.id}" data-dir="up" title="Nach oben">▲</span>
-            <span class="arr" data-id="${p.id}" data-dir="down" title="Nach unten">▼</span>
-          </span>
-        </div>`;
-    return `<tr data-id="${p.id}" class="${p.id === state.selectedId ? 'sel' : ''}">
+  function auDisplay(){ if(!AU.sortByDept) return DB.people.slice(); const ord=Object.keys(DEPTS);
+    return DB.people.map((p,i)=>({p,i})).sort((a,b)=>{const da=ord.indexOf(a.p.dept),db=ord.indexOf(b.p.dept);return da!==db?da-db:a.i-b.i;}).map(x=>x.p); }
+
+  function auRowHTML(p){ const d=dept(p.dept);
+    const orderCell = AU.sortByDept
+      ? `<span class="grip" style="cursor:default;color:#3a3d44;" title="Sortierung aktiv">⠿</span>`
+      : `<div class="ord"><span class="grip" draggable="true" title="Ziehen zum Sortieren">⠿</span><span class="arrow"><span class="arr" data-id="${p.id}" data-dir="up">▲</span><span class="arr" data-id="${p.id}" data-dir="down">▼</span></span></div>`;
+    return `<tr data-id="${p.id}" class="${p.id===AU.selectedId?'sel':''}">
       <td>${orderCell}</td>
-      <td><span class="nr" data-id="${p.id}" style="color:${d.color};font:700 14px 'IBM Plex Mono',monospace;">${pad(idx(p.id) + 1)}</span></td>
+      <td><span class="nr" data-id="${p.id}" style="color:${d.color};font:700 14px 'IBM Plex Mono',monospace;">${pad(pIdx(p.id)+1)}</span></td>
       <td><input class="inp" data-id="${p.id}" data-f="name" value="${esc(p.name)}" placeholder="Name"></td>
       <td><select class="sel" data-id="${p.id}" data-f="dept">${deptOptions(p.dept)}</select></td>
       <td><input class="inp" data-id="${p.id}" data-f="role" list="roleList" value="${esc(p.role)}" placeholder="z. B. Kamera / DOP"></td>
       <td><input class="inp" data-id="${p.id}" data-f="filmRole" value="${esc(p.filmRole)}" placeholder="optional"></td>
       <td><div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <span class="mark" data-id="${p.id}" data-mark="head"   title="Department-Head"      style="${markStyle('head', p.head)}">HEAD</span>
-        <span class="mark" data-id="${p.id}" data-mark="lehrer" title="Lehrkraft"            style="${markStyle('lehrer', p.lehrer)}">LEHRER</span>
-        <span class="mark" data-id="${p.id}" data-mark="media"  title="Foto/Video-Freigabe"  style="${markStyle('media', p.media)}">MEDIA</span>
-        <span class="mark" data-id="${p.id}" data-mark="legacy" title="Schon mehrfach dabei" style="${markStyle('legacy', p.legacy)}">LEGACY</span>
+        <span class="mark" data-id="${p.id}" data-mark="head" style="${markStyle('head',p.head)}">HEAD</span>
+        <span class="mark" data-id="${p.id}" data-mark="lehrer" style="${markStyle('lehrer',p.lehrer)}">LEHRER</span>
+        <span class="mark" data-id="${p.id}" data-mark="media" style="${markStyle('media',p.media)}">MEDIA</span>
+        <span class="mark" data-id="${p.id}" data-mark="legacy" style="${markStyle('legacy',p.legacy)}">LEGACY</span>
       </div></td>
       <td><div style="display:flex;gap:6px;">
-        <span class="act" data-id="${p.id}" data-act="preview" title="Vorschau">Vorschau</span>
-        <span class="act" data-id="${p.id}" data-act="print"   title="Diesen Pass drucken">Drucken</span>
-        <span class="act" data-id="${p.id}" data-act="dup"     title="Duplizieren">Dupl.</span>
-        <span class="act del" data-id="${p.id}" data-act="del" title="Löschen">✕</span>
-      </div></td>
-    </tr>`;
+        <span class="act" data-id="${p.id}" data-au-act="preview">Vorschau</span>
+        <span class="act" data-id="${p.id}" data-au-act="print">Drucken</span>
+        <span class="act" data-id="${p.id}" data-au-act="dup">Dupl.</span>
+        <span class="act del" data-id="${p.id}" data-au-act="del">✕</span>
+      </div></td></tr>`;
+  }
+  const auTbody=()=>$('auTbody');
+  function renderPeople(){ auTbody().innerHTML=auDisplay().map(auRowHTML).join(''); $('auCount').textContent=DB.people.length; }
+  function auUpdateSel(){ auTbody().querySelectorAll('tr[data-id]').forEach(tr=>tr.classList.toggle('sel',tr.getAttribute('data-id')===AU.selectedId)); }
+  function auSelect(id){ if(AU.selectedId===id) return; AU.selectedId=id; auUpdateSel(); renderAuPreview(); }
+
+  function renderAuPreview(){ const i=pIdx(AU.selectedId); const wrap=$('auPreviewWrap'); if(i<0){wrap.style.visibility='hidden';return;} wrap.style.visibility='visible'; $('auPreviewCard').innerHTML=auCardHTML(DB.people[i],pad(i+1)); fitAuPreview(); }
+  function fitAuPreview(){ const h=$('auPreviewCard'); const inner=h.firstElementChild; if(!inner) return; const avail=($('auPreviewPane').clientWidth||window.innerWidth)-44; const s=Math.min(1,avail/520); inner.style.transformOrigin='top left'; inner.style.transform='scale('+s+')'; h.style.width=(520*s)+'px'; h.style.height=(328*s)+'px'; }
+
+  function auUpdate(id,f,v){ const p=pById(id); if(p){ p[f]=v; Store.savePeople(); } }
+  function auAdd(){ const p=normPerson({name:'Neue Person'}); DB.people.push(p); AU.selectedId=p.id; Store.savePeople(); renderPeople(); renderAuPreview(); const inp=auTbody().querySelector(`.inp[data-id="${p.id}"][data-f="name"]`); if(inp){inp.focus();inp.select();} }
+  function auDup(id){ const i=pIdx(id); if(i<0)return; const p={...DB.people[i],id:uid('p'),name:DB.people[i].name+' (Kopie)'}; DB.people.splice(i+1,0,p); AU.selectedId=p.id; Store.savePeople(); renderPeople(); renderAuPreview(); }
+  function auDel(id){ const i=pIdx(id); if(i<0)return; DB.people.splice(i,1); if(AU.selectedId===id){ const n=DB.people[Math.min(i,DB.people.length-1)]; AU.selectedId=n?n.id:null; } Store.savePeople(); renderPeople(); renderAuPreview(); }
+  function auMoveBy(id,delta){ const i=pIdx(id),j=i+delta; if(i<0||j<0||j>=DB.people.length)return; const a=DB.people; [a[i],a[j]]=[a[j],a[i]]; Store.savePeople(); renderPeople(); renderAuPreview(); }
+  function auMoveItem(drag,target,after){ if(drag===target)return; const a=DB.people; const from=a.findIndex(p=>p.id===drag); if(from<0)return; const [it]=a.splice(from,1); let to=a.findIndex(p=>p.id===target); if(to<0){a.splice(from,0,it);return;} if(after)to++; a.splice(to,0,it); Store.savePeople(); renderPeople(); renderAuPreview(); }
+
+  function auClearDrop(){ auTbody().querySelectorAll('tr[data-id]').forEach(tr=>{tr.style.boxShadow='';delete tr.dataset.after;}); }
+
+  function wirePeople(){ const tb=auTbody();
+    const onField=(e)=>{ const el=e.target.closest('[data-f]'); if(!el)return; const id=el.getAttribute('data-id'),f=el.getAttribute('data-f'); auUpdate(id,f,el.value);
+      if(f==='dept'){ const nr=tb.querySelector(`.nr[data-id="${id}"]`); if(nr)nr.style.color=dept(el.value).color; }
+      if(id===AU.selectedId) renderAuPreview(); };
+    tb.addEventListener('input',onField); tb.addEventListener('change',onField);
+    tb.addEventListener('focusin',(e)=>{ const el=e.target.closest('[data-id]'); if(el) auSelect(el.getAttribute('data-id')); });
+    tb.addEventListener('click',(e)=>{
+      const mark=e.target.closest('.mark'); if(mark){ const id=mark.getAttribute('data-id'),m=mark.getAttribute('data-mark'); const p=pById(id); if(!p)return; p[m]=!p[m]; Store.savePeople(); mark.setAttribute('style',markStyle(m,p[m])); if(id===AU.selectedId)renderAuPreview(); return; }
+      const arr=e.target.closest('.arr'); if(arr){ auMoveBy(arr.getAttribute('data-id'),arr.getAttribute('data-dir')==='up'?-1:1); return; }
+      const act=e.target.closest('[data-au-act]'); if(act){ const id=act.getAttribute('data-id'),a=act.getAttribute('data-au-act');
+        if(a==='preview'){ auSelect(id); $('auPreviewPane').scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        else if(a==='print') auPrintOne(id); else if(a==='dup') auDup(id); else if(a==='del') auDel(id); return; }
+      const tr=e.target.closest('tr[data-id]'); if(tr) auSelect(tr.getAttribute('data-id'));
+    });
+    tb.addEventListener('dragstart',(e)=>{ if(!e.target.classList||!e.target.classList.contains('grip')){e.preventDefault();return;} const tr=e.target.closest('tr[data-id]'); if(!tr)return; AU.dragId=tr.getAttribute('data-id'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',AU.dragId);}catch(err){} });
+    tb.addEventListener('dragover',(e)=>{ if(!AU.dragId)return; const tr=e.target.closest('tr[data-id]'); if(!tr)return; e.preventDefault(); e.dataTransfer.dropEffect='move'; const r=tr.getBoundingClientRect(); const after=e.clientY>r.top+r.height/2; auClearDrop(); tr.style.boxShadow=after?'inset 0 -2px 0 0 #4f8cff':'inset 0 2px 0 0 #4f8cff'; tr.dataset.after=after?'1':'0'; });
+    tb.addEventListener('drop',(e)=>{ if(!AU.dragId)return; const tr=e.target.closest('tr[data-id]'); if(!tr){AU.dragId=null;auClearDrop();return;} e.preventDefault(); auMoveItem(AU.dragId,tr.getAttribute('data-id'),tr.dataset.after==='1'); AU.dragId=null; });
+    tb.addEventListener('dragend',()=>{ AU.dragId=null; auClearDrop(); });
+
+    const styleSort=()=>{ const b=$('auSort'); if(AU.sortByDept){b.style.background='#f4f3ef';b.style.color='#15161a';b.style.borderColor='#f4f3ef';b.style.fontWeight='700';} else {b.style.background='#1d1f24';b.style.color='#c9cace';b.style.borderColor='#34373e';b.style.fontWeight='600';} };
+    $('auSort').addEventListener('click',()=>{ AU.sortByDept=!AU.sortByDept; styleSort(); renderPeople(); }); styleSort();
+    $('auAdd').addEventListener('click',auAdd);
+    $('auPrintAll').addEventListener('click',auPrintAll);
   }
 
-  const tbody = () => $('tbody');
+  function auCardBlock(p,i){ return `<div style="display:inline-block;vertical-align:top;width:85mm;height:54mm;overflow:hidden;border-radius:0;margin:0 5mm 5mm 0;break-inside:avoid;page-break-inside:avoid;"><div style="width:520px;height:328px;transform:scale(0.6178);transform-origin:top left;">${auCardHTML(p,pad(i+1))}</div></div>`; }
+  function auPrintAll(){ const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auDisplay().map(p=>auCardBlock(p,pIdx(p.id))).join(''); setTimeout(()=>window.print(),80); }
+  function auPrintOne(id){ const i=pIdx(id); if(i<0)return; const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auCardBlock(DB.people[i],i); setTimeout(()=>window.print(),80); }
 
-  // Display order: canonical (manual) unless sorting by department.
-  // Numbers always come from the canonical position, so sorting never renumbers.
-  function displayList() {
-    if (!state.sortByDept) return state.participants.slice();
-    const order = Object.keys(DEPTS);
-    return state.participants
-      .map((p, i) => ({ p, i }))
-      .sort((a, b) => {
-        const da = order.indexOf(a.p.dept), db = order.indexOf(b.p.dept);
-        return da !== db ? da - db : a.i - b.i;
-      })
-      .map(x => x.p);
-  }
+  /* ===================== SCHILD rendering ===================== */
+  function dims(or){ return or==='L'?{w:1123,h:794,bandH:84,heroFont:104}:{w:794,h:1123,bandH:92,heroFont:92}; }
+  function styleVals(st){ return st==='B'
+    ? {bg:'#f4f3ef',fg:'#15161a',muted:'#6c6e74',subColor:'#3a3d43',rowLine:'#dcd9d0',trackBg:'#e3e0d7',frameCss:'border:1px solid #d8d6cf;'}
+    : {bg:'#15161a',fg:'#f4f3ef',muted:'#8a8d94',subColor:'#c9cace',rowLine:'#2a2c31',trackBg:'#26282d',frameCss:''}; }
+  function encourage(p){ if(p<=0)return 'Klappe – los geht’s!'; if(p<25)return 'Warmgelaufen.'; if(p<50)return 'Stark – weiter so!'; if(p<60)return 'Halbzeit! Bergfest.'; if(p<80)return 'Über die Hälfte im Kasten.'; if(p<100)return 'Endspurt – fast geschafft!'; return 'Alles im Kasten. Wrap!'; }
 
-  function renderTable() {
-    tbody().innerHTML = displayList().map(p => rowHTML(p)).join('');
-    $('count').textContent = state.participants.length;
-  }
-
-  function updateSel() {
-    tbody().querySelectorAll('tr[data-id]').forEach(tr =>
-      tr.classList.toggle('sel', tr.getAttribute('data-id') === state.selectedId));
-  }
-
-  function selectRow(id) {
-    if (state.selectedId === id) return;
-    state.selectedId = id;
-    updateSel();
-    renderPreview();
-  }
-
-  // ---- preview ----
-  function renderPreview() {
-    const i = idx(state.selectedId);
-    const wrap = $('previewWrap');
-    if (i < 0) { wrap.style.visibility = 'hidden'; return; }
-    wrap.style.visibility = 'visible';
-    $('previewCard').innerHTML = cardInnerHTML(state.participants[i], state.filmTitle, pad(i + 1));
-    fitPreview();
-  }
-
-  function fitPreview() {
-    const holder = $('previewCard');
-    const inner = holder.firstElementChild;
-    if (!inner) return;
-    const avail = ($('previewPane').clientWidth || window.innerWidth) - 44;
-    const s = Math.min(1, avail / 520);
-    inner.style.transformOrigin = 'top left';
-    inner.style.transform = 'scale(' + s + ')';
-    holder.style.width = (520 * s) + 'px';
-    holder.style.height = (328 * s) + 'px';
-  }
-
-  // ---- mutations ----
-  function update(id, f, v) { const p = byId(id); if (p) { p[f] = v; persist(); } }
-
-  function add() {
-    const p = {id:uid(),name:'Neue Person',dept:'TE',role:'',filmRole:'',head:false,media:false,legacy:false,lehrer:false};
-    state.participants.push(p);
-    state.selectedId = p.id;
-    persist();
-    renderTable(); renderPreview();
-    const inp = tbody().querySelector(`.inp[data-id="${p.id}"][data-f="name"]`);
-    if (inp) { inp.focus(); inp.select(); }
-  }
-
-  function dup(id) {
-    const i = idx(id); if (i < 0) return;
-    const p = {...state.participants[i], id:uid(), name:state.participants[i].name + ' (Kopie)'};
-    state.participants.splice(i + 1, 0, p);
-    state.selectedId = p.id;
-    persist(); renderTable(); renderPreview();
-  }
-
-  function del(id) {
-    const i = idx(id); if (i < 0) return;
-    state.participants.splice(i, 1);
-    if (state.selectedId === id) {
-      const n = state.participants[Math.min(i, state.participants.length - 1)];
-      state.selectedId = n ? n.id : null;
+  function enrichSign(s, style){
+    const k=KINDS[s.kind]||KINDS.wayfind; const cat=CATS[s.cat]||CATS.info; const sv=styleVals(style);
+    const orient=s.orient||k.orient; const d=dims(orient); const fam=k.fam;
+    const b={ ...sv, w:d.w,h:d.h,bandH:d.bandH, accent:cat.c, accentFg:cat.fg, eyebrow:k.eyebrow, film:DB.filmTitle,
+      isHero:fam==='hero', isList:fam==='list', isRules:fam==='rules', isCallsheet:fam==='callsheet', isDay:fam==='day', isProgress:fam==='progress',
+      title:s.title||'', subtitle:s.subtitle||'', note:s.note||'',
+      hasSubtitle:!!(s.subtitle&&String(s.subtitle).trim()), hasNote:!!(s.note&&String(s.note).trim()),
+      recRing: style==='B'?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.06)',
+      gRec:false,gBan:false,gBadge:false,gHazard:false,gArrow:false,arrowRot:0,
+      colA:'',colB:'',colC:'',showColC:false,rows:[],unit:'',segs:[],pips:[] };
+    b.titleFont = fam==='hero'? d.heroFont : (orient==='L'?52:58);
+    b.subFont = orient==='L'?24:26;
+    if(fam==='hero'){
+      b.gRec=k.glyph==='rec'; b.gBan=k.glyph==='ban'; b.gBadge=k.glyph==='badge'; b.gHazard=k.glyph==='hazard'; b.gArrow=k.glyph==='arrow';
+      b.arrowRot={R:0,D:90,L:180,U:270}[s.arrow||'R'];
+    } else if(fam==='list'){
+      b.colA=k.cols[0]||''; b.colB=k.cols[1]||''; b.colC=k.cols[2]||''; b.showColC=k.cols.length>2;
+      let rows;
+      if(s.kind==='namelist') rows=DB.people.map((p,i)=>({a:p.name||'', b:dept(p.dept).name, c:pad(i+1)}));   // synced from personnel DB
+      else rows=(s.rows||[]).map(r=>({a:r.a||'',b:r.b||'',c:r.c||''}));
+      b.rows=rows.map(r=>({...r,tag:''}));
+    } else if(fam==='rules'){
+      b.rows=(s.rows||[]).map((r,i)=>({a:r.a||'',tag:String(i+1)}));
+    } else if(fam==='callsheet'){
+      b.rows=(s.rows||[]).map(r=>({a:r.a||'',b:r.b||''}));
+    } else if(fam==='day'){
+      const dn=parseInt(s.dayNum)||0, tot=parseInt(s.totalDays)||0;
+      b.dayNum=s.dayNum||''; b.dayWeek=s.dayWeek||''; b.dayDate=s.dayDate||''; b.daysLeft=Math.max(tot-dn,0);
+      b.pips=Array.from({length:Math.min(tot,16)},(_,i)=>({bg:i<dn?cat.c:sv.trackBg}));
+    } else if(fam==='progress'){
+      const dn=parseInt(s.done)||0, tot=parseInt(s.total)||0; const pct=tot>0?Math.max(0,Math.min(100,Math.round(dn/tot*100))):0;
+      b.done=dn; b.total=tot; b.unit=s.unit||''; b.pct=pct; b.encouragement=encourage(pct);
+      b.segs=(tot>0&&tot<=60)?Array.from({length:tot},(_,i)=>({bg:i<dn?cat.c:sv.trackBg})):[];
     }
-    persist(); renderTable(); renderPreview();
+    return b;
   }
 
-  function moveBy(id, delta) {
-    const i = idx(id), j = i + delta;
-    if (i < 0 || j < 0 || j >= state.participants.length) return;
-    const a = state.participants;
-    [a[i], a[j]] = [a[j], a[i]];
-    persist(); renderTable(); renderPreview();
+  function schildHTML(d){
+    const glyph =
+      (d.gRec?`<div style="display:flex;align-items:center;gap:20px;"><span style="width:46px;height:46px;border-radius:50%;background:${d.accent};box-shadow:0 0 0 9px ${d.recRing};display:block;"></span><span style="font:700 30px 'IBM Plex Mono',monospace;letter-spacing:.34em;color:${d.fg};">REC</span></div>`:'')+
+      (d.gBan?`<div style="position:relative;width:172px;height:172px;flex:none;"><div style="position:absolute;inset:0;border:16px solid ${d.accent};border-radius:50%;"></div><div style="position:absolute;top:50%;left:-8px;right:-8px;height:16px;background:${d.accent};transform:translateY(-50%) rotate(45deg);"></div></div>`:'')+
+      (d.gBadge?`<div style="width:128px;height:128px;border:14px solid ${d.accent};transform:rotate(45deg);flex:none;"></div>`:'')+
+      (d.gHazard?`<div style="width:100%;height:52px;border-radius:5px;background:repeating-linear-gradient(45deg,${d.accent} 0 30px,#1b1d21 30px 60px);"></div>`:'')+
+      (d.gArrow?`<div style="transform:rotate(${d.arrowRot}deg);flex:none;"><div style="width:0;height:0;border-top:78px solid transparent;border-bottom:78px solid transparent;border-left:130px solid ${d.accent};"></div></div>`:'');
+    const hero=d.isHero?`<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 56px;gap:32px;min-height:0;">${glyph}<div style="font:700 ${d.titleFont}px 'Saira Condensed',sans-serif;line-height:.9;text-transform:uppercase;color:${d.fg};letter-spacing:.01em;">${esc(d.title)}</div>${d.hasSubtitle?`<div style="font:500 ${d.subFont}px 'IBM Plex Mono',monospace;color:${d.subColor};line-height:1.35;max-width:92%;">${esc(d.subtitle)}</div>`:''}${d.hasNote?`<div style="margin-top:6px;font:500 19px 'IBM Plex Mono',monospace;color:${d.muted};border-left:5px solid ${d.accent};padding-left:18px;line-height:1.45;max-width:88%;">${esc(d.note)}</div>`:''}</div>`:'';
+    const listRows=(d.rows||[]).map(r=>`<div style="display:flex;align-items:baseline;padding:13px 0;border-bottom:1px solid ${d.rowLine};"><span style="flex:1.5;font:700 26px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${d.fg};line-height:1;display:flex;align-items:baseline;gap:12px;">${r.tag?`<span style="font:600 16px 'IBM Plex Mono',monospace;color:${d.accent};">${esc(r.tag)}</span>`:''}${esc(r.a)}</span><span style="flex:1.1;font:500 17px 'IBM Plex Mono',monospace;color:${d.subColor};">${esc(r.b)}</span>${d.showColC?`<span style="flex:.9;text-align:right;font:600 19px 'IBM Plex Mono',monospace;color:${d.fg};">${esc(r.c)}</span>`:''}</div>`).join('');
+    const list=d.isList?`<div style="flex:1;display:flex;flex-direction:column;padding:34px 52px 26px;min-height:0;"><div style="font:700 ${d.titleFont}px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${d.fg};line-height:.95;margin-bottom:6px;">${esc(d.title)}</div>${d.hasSubtitle?`<div style="font:500 17px 'IBM Plex Mono',monospace;color:${d.subColor};margin-bottom:18px;">${esc(d.subtitle)}</div>`:''}<div style="display:flex;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:${d.muted};padding-bottom:11px;border-bottom:2px solid ${d.accent};"><span style="flex:1.5;">${esc(d.colA)}</span><span style="flex:1.1;">${esc(d.colB)}</span>${d.showColC?`<span style="flex:.9;text-align:right;">${esc(d.colC)}</span>`:''}</div><div style="flex:1;display:flex;flex-direction:column;min-height:0;">${listRows}</div></div>`:'';
+    const rulesRows=(d.rows||[]).map(r=>`<div style="display:flex;align-items:baseline;gap:24px;padding:16px 0;border-bottom:1px solid ${d.rowLine};"><span style="flex:none;width:56px;font:700 42px 'Saira Condensed',sans-serif;color:${d.accent};line-height:.85;">${esc(r.tag)}</span><span style="flex:1;font:500 23px 'IBM Plex Mono',monospace;color:${d.fg};line-height:1.35;">${esc(r.a)}</span></div>`).join('');
+    const rules=d.isRules?`<div style="flex:1;display:flex;flex-direction:column;padding:34px 52px 26px;min-height:0;"><div style="font:700 ${d.titleFont}px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${d.fg};line-height:.95;">${esc(d.title)}</div>${d.hasSubtitle?`<div style="font:500 17px 'IBM Plex Mono',monospace;color:${d.subColor};margin-top:8px;">${esc(d.subtitle)}</div>`:''}<div style="flex:1;display:flex;flex-direction:column;margin-top:16px;min-height:0;">${rulesRows}</div></div>`:'';
+    const csRows=(d.rows||[]).map(r=>`<div style="display:flex;align-items:baseline;gap:18px;padding:12px 0;border-bottom:1px solid ${d.rowLine};"><span style="width:170px;flex:none;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:${d.muted};">${esc(r.a)}</span><span style="flex:1;font:600 22px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${d.fg};letter-spacing:.02em;">${esc(r.b)}</span></div>`).join('');
+    const callsheet=d.isCallsheet?`<div style="flex:1;display:flex;padding:38px 52px 28px;gap:44px;min-height:0;"><div style="flex:1;display:flex;flex-direction:column;min-width:0;"><div style="font:700 ${d.titleFont}px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${d.fg};line-height:.9;">${esc(d.title)}</div>${d.hasSubtitle?`<div style="font:500 18px 'IBM Plex Mono',monospace;color:${d.subColor};margin-top:12px;line-height:1.4;">${esc(d.subtitle)}</div>`:''}<div style="margin-top:30px;display:flex;flex-direction:column;gap:2px;">${csRows}</div>${d.hasNote?`<div style="margin-top:auto;font:500 17px 'IBM Plex Mono',monospace;color:${d.muted};border-left:5px solid ${d.accent};padding-left:16px;line-height:1.45;">${esc(d.note)}</div>`:''}</div><div style="flex:none;width:248px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;"><div style="background:#fff;padding:14px;border-radius:10px;"><img src="assets/qr-drehplan.svg" alt="Drehplan" style="width:200px;height:200px;display:block;"></div><div style="font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:${d.muted};text-align:center;">Drehplan scannen</div></div></div>`:'';
+    const pips=(d.pips||[]).map(p=>`<span style="width:38px;height:12px;border-radius:3px;background:${p.bg};"></span>`).join('');
+    const day=d.isDay?`<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 56px;gap:22px;min-height:0;"><div style="font:600 18px 'IBM Plex Mono',monospace;letter-spacing:.24em;text-transform:uppercase;color:${d.muted};">${esc(d.title)}</div><div style="display:flex;align-items:flex-start;gap:30px;"><div style="font:700 232px 'Saira Condensed',sans-serif;line-height:.74;color:${d.fg};">${esc(d.dayNum)}</div><div style="padding-top:14px;"><div style="font:700 56px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${d.accent};line-height:.95;">${esc(d.dayWeek)}</div><div style="font:500 26px 'IBM Plex Mono',monospace;color:${d.subColor};margin-top:6px;">${esc(d.dayDate)}</div></div></div><div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;">${pips}</div><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px;gap:24px;"><div style="flex:1;font:500 21px 'IBM Plex Mono',monospace;color:${d.fg};border-left:5px solid ${d.accent};padding-left:18px;line-height:1.4;">${esc(d.note)}</div><div style="flex:none;text-align:right;"><div style="font:700 80px 'Saira Condensed',sans-serif;color:${d.accent};line-height:.8;">${d.daysLeft}</div><div style="font:600 14px 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:${d.muted};margin-top:4px;">Drehtage übrig</div></div></div></div>`:'';
+    const segs=(d.segs||[]).map(s=>`<span style="width:24px;height:24px;border-radius:5px;background:${s.bg};"></span>`).join('');
+    const progress=d.isProgress?`<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 56px;gap:26px;min-height:0;"><div style="font:700 ${d.titleFont}px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${d.fg};line-height:.9;">${esc(d.title)}</div><div style="display:flex;align-items:baseline;gap:18px;"><span style="font:700 168px 'Saira Condensed',sans-serif;line-height:.74;color:${d.accent};">${d.done}</span><span style="font:600 50px 'Saira Condensed',sans-serif;color:${d.muted};">/ ${d.total} ${esc(d.unit)}</span></div><div style="height:28px;background:${d.trackBg};border-radius:14px;overflow:hidden;"><div style="width:${d.pct}%;height:100%;background:${d.accent};border-radius:14px;"></div></div><div style="display:flex;gap:7px;flex-wrap:wrap;">${segs}</div><div style="margin-top:6px;font:700 36px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${d.fg};">${esc(d.encouragement)}</div>${d.hasNote?`<div style="font:500 18px 'IBM Plex Mono',monospace;color:${d.muted};line-height:1.45;">${esc(d.note)}</div>`:''}</div>`:'';
+    return `<div style="width:100%;height:100%;position:relative;background:${d.bg};font-family:'IBM Plex Mono',monospace;overflow:hidden;display:flex;flex-direction:column;${d.frameCss}print-color-adjust:exact;-webkit-print-color-adjust:exact;">
+      <div style="flex:none;height:${d.bandH}px;background:${d.accent};display:flex;align-items:center;justify-content:space-between;padding:0 48px;"><div style="display:flex;align-items:center;gap:16px;"><span style="width:18px;height:18px;background:${d.accentFg};transform:rotate(45deg);display:block;"></span><span style="font:600 30px 'IBM Plex Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:${d.accentFg};">${esc(d.eyebrow)}</span></div><span style="font:600 18px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:${d.accentFg};opacity:.82;">${esc(d.film)}</span></div>
+      ${hero}${list}${rules}${callsheet}${day}${progress}
+      <div style="flex:none;height:84px;background:#15161a;border-top:3px solid ${d.accent};display:flex;align-items:center;justify-content:space-between;padding:0 40px;"><img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:30px;display:block;"><span style="font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#7c7f86;">XY Pictures · Heinrich-Hertz-Gymnasium</span><img src="assets/school-emblem-white.png" alt="HHG" style="height:46px;width:46px;display:block;opacity:.9;"></div>
+    </div>`;
   }
 
-  function moveItem(dragId, targetId, after) {
-    if (dragId === targetId) return;
-    const a = state.participants;
-    const from = a.findIndex(p => p.id === dragId);
-    if (from < 0) return;
-    const [item] = a.splice(from, 1);
-    let to = a.findIndex(p => p.id === targetId);
-    if (to < 0) { a.splice(from, 0, item); return; }
-    if (after) to += 1;
-    a.splice(to, 0, item);
-    persist(); renderTable(); renderPreview();
+  /* ===================== SCHILDER view ===================== */
+  const SC = { selectedId:null, compare:false };
+  const sIdx=(id)=>DB.signs.findIndex(s=>s.id===id);
+  const sById=(id)=>DB.signs.find(s=>s.id===id);
+  const scSel=()=>sById(SC.selectedId);
+  const fmtLabel=(or)=> or==='L'?'A4 quer · 297 × 210 mm':'A4 hoch · 210 × 297 mm';
+  const tgl=(a)=> a?{bg:'#2a2d34',bd:'#4a4d54',fg:'#f4f3ef'}:{bg:'#1a1c20',bd:'#34373e',fg:'#8a8d94'};
+  const editCols=(kind)=>{ const cols=(KINDS[kind]||{}).cols||[]; const f=['a','b','c']; return cols.map((p,i)=>({f:f[i],p})); };
+
+  function renderSignList(){
+    $('scCount').textContent=DB.signs.length;
+    $('scList').innerHTML=`<div style="padding:10px;display:flex;flex-direction:column;gap:3px;">`+DB.signs.map(s=>{
+      const k=KINDS[s.kind]||KINDS.wayfind; const cat=CATS[s.cat]||CATS.info; const on=s.id===SC.selectedId; const or=s.orient||k.orient;
+      return `<div data-sc-act="select" data-id="${s.id}" style="display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:9px;cursor:pointer;background:${on?'#2a2d34':'transparent'};border:1px solid ${on?'#3d4149':'transparent'};">
+        <span style="width:9px;height:30px;border-radius:3px;background:${cat.c};flex:none;"></span>
+        <div style="min-width:0;flex:1;"><div style="font:600 14px 'Saira Condensed',sans-serif;color:#f4f3ef;text-transform:uppercase;letter-spacing:.03em;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.title||'(ohne Titel)')}</div><div style="font:500 10px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(KIND_LABELS[s.kind]||'Schild')} · ${or==='L'?'Quer':'Hoch'}</div></div>
+      </div>`;
+    }).join('')+`</div>`;
   }
 
-  // ---- print ----
-  function cardBlock(p, i) {
-    return `<div style="display:inline-block;vertical-align:top;width:85mm;height:54mm;overflow:hidden;border-radius:0;margin:0 5mm 5mm 0;break-inside:avoid;page-break-inside:avoid;">
-      <div style="width:520px;height:328px;transform:scale(0.6178);transform-origin:top left;">
-        ${cardInnerHTML(p, state.filmTitle, pad(i + 1))}
-      </div></div>`;
-  }
-  function doPrintAll() {
-    // Number from the canonical position; lay out in the currently shown order.
-    $('printSheet').innerHTML = displayList().map(p => cardBlock(p, idx(p.id))).join('');
-    setTimeout(() => window.print(), 80);
-  }
-  function doPrintOne(id) {
-    const i = idx(id); if (i < 0) return;
-    $('printSheet').innerHTML = cardBlock(state.participants[i], i);
-    setTimeout(() => window.print(), 80);
+  function fieldHTML(label,f,val,extra){ return `<label style="display:block;margin-bottom:14px;"><span class="lbl">${label}</span><input class="inp" data-f="${f}" value="${esc(val||'')}" ${extra||''}></label>`; }
+
+  function renderSignEditor(){
+    const s=scSel(); const box=$('scEditor');
+    if(!s){ box.innerHTML=`<div style="padding:60px 28px;text-align:center;color:#6c6e74;font:500 13px 'IBM Plex Mono',monospace;line-height:1.6;">Kein Schild ausgewählt.<br>Wähle links eines oder lege ein neues an.</div>`; return; }
+    const k=KINDS[s.kind]||KINDS.wayfind; const fam=k.fam; const orient=s.orient||k.orient;
+    const kindOpts=Object.keys(KINDS).map(kk=>`<option value="${kk}"${kk===s.kind?' selected':''}>${esc(KIND_LABELS[kk])}</option>`).join('');
+    const catOpts=Object.keys(CATS).map(cc=>`<option value="${cc}"${cc===s.cat?' selected':''}>${esc(CATS[cc].name)}</option>`).join('');
+    const oP=tgl(orient==='P'), oL=tgl(orient==='L');
+    let cond='';
+    if(s.kind==='arrow'){ const a=s.arrow||'R'; const bt=(dir,gl)=>{const t=tgl(a===dir);return `<div data-sc-act="arrow" data-dir="${dir}" style="flex:1;text-align:center;cursor:pointer;border-radius:7px;padding:12px 0;font:700 16px 'IBM Plex Mono',monospace;background:${t.bg};border:1px solid ${t.bd};color:${t.fg};">${gl}</div>`;};
+      cond=`<div style="margin-bottom:16px;"><span class="lbl">Pfeilrichtung</span><div style="display:flex;gap:8px;">${bt('L','←')}${bt('U','↑')}${bt('D','↓')}${bt('R','→')}</div></div>`;
+    } else if(fam==='day'){
+      cond=`<div style="margin-bottom:8px;display:flex;gap:12px;"><label style="width:96px;flex:none;"><span class="lbl">Tag-Nr.</span><input class="inp" data-f="dayNum" value="${esc(s.dayNum||'')}"></label><label style="flex:1;"><span class="lbl">Wochentag</span><input class="inp" data-f="dayWeek" value="${esc(s.dayWeek||'')}"></label></div><div style="margin-bottom:16px;display:flex;gap:12px;"><label style="flex:1;"><span class="lbl">Datum</span><input class="inp" data-f="dayDate" value="${esc(s.dayDate||'')}"></label><label style="width:120px;flex:none;"><span class="lbl">Drehtage ges.</span><input class="inp" data-f="totalDays" value="${esc(s.totalDays||'')}"></label></div>`;
+    } else if(fam==='progress'){
+      cond=`<div style="margin-bottom:16px;display:flex;gap:12px;"><label style="width:90px;flex:none;"><span class="lbl">Geschafft</span><input class="inp" data-f="done" value="${esc(s.done||'')}"></label><label style="width:90px;flex:none;"><span class="lbl">Gesamt</span><input class="inp" data-f="total" value="${esc(s.total||'')}"></label><label style="flex:1;"><span class="lbl">Einheit</span><input class="inp" data-f="unit" value="${esc(s.unit||'')}"></label></div>`;
+    } else if(s.kind==='namelist'){
+      cond=`<div style="margin-bottom:8px;padding:13px;border:1px dashed #34373e;border-radius:8px;background:#191b1f;font:500 11.5px 'IBM Plex Mono',monospace;color:#8a8d94;line-height:1.5;">Diese Liste wird <b style="color:#c9cace;">automatisch aus dem Personal</b> (Tab „Crew-Ausweise") erzeugt – Name, Department und Ausweis-Nr. Neue Personen erscheinen hier sofort.</div>`;
+    } else if(fam==='list'||fam==='rules'||fam==='callsheet'){
+      const cols=editCols(s.kind); const rowsLabelMap={phonelist:'Kontakte',rules:'Regeln',callsheet:'Felder'};
+      const rows=(s.rows||[]).map((r,i)=>`<div style="display:flex;gap:6px;align-items:center;">${cols.map(c=>`<input class="inp" data-row="${i}" data-cell="${c.f}" value="${esc(r[c.f]||'')}" placeholder="${esc(c.p)}" style="flex:1;min-width:0;padding:8px 9px;font-size:12px;">`).join('')}<div data-sc-act="removeRow" data-row="${i}" style="cursor:pointer;flex:none;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid #34373e;border-radius:6px;color:#7c7f86;font:600 13px 'IBM Plex Mono',monospace;">✕</div></div>`).join('');
+      cond=`<div style="margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;"><span class="lbl" style="margin-bottom:0;">${rowsLabelMap[s.kind]||'Zeilen'}</span><div data-sc-act="addRow" class="act" style="padding:5px 10px;">+ ZEILE</div></div><div style="display:flex;flex-direction:column;gap:7px;">${rows}</div>`;
+    }
+    box.innerHTML=`<div style="padding:20px 22px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;"><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Schild bearbeiten</span><div style="display:flex;gap:8px;"><div data-sc-act="dup" class="act" style="padding:5px 10px;">DUPLIZIEREN</div><div data-sc-act="del" class="act del" style="padding:5px 10px;">LÖSCHEN</div></div></div>
+      <label style="display:block;margin-bottom:14px;"><span class="lbl">Schild-Typ</span><select class="sel" data-f="kind">${kindOpts}</select></label>
+      <div style="display:flex;gap:12px;margin-bottom:14px;"><label style="flex:1;min-width:0;"><span class="lbl">Farbe / Kategorie</span><select class="sel" data-f="cat">${catOpts}</select></label><label style="width:140px;flex:none;"><span class="lbl">Format</span><div style="display:flex;gap:6px;"><div data-sc-act="orientP" style="flex:1;text-align:center;cursor:pointer;border-radius:7px;padding:10px 0;font:700 11px 'IBM Plex Mono',monospace;background:${oP.bg};border:1px solid ${oP.bd};color:${oP.fg};">HOCH</div><div data-sc-act="orientL" style="flex:1;text-align:center;cursor:pointer;border-radius:7px;padding:10px 0;font:700 11px 'IBM Plex Mono',monospace;background:${oL.bg};border:1px solid ${oL.bd};color:${oL.fg};">QUER</div></div></label></div>
+      ${fieldHTML('Titel','title',s.title,'style="font-size:15px;"')}
+      ${fieldHTML('Unterzeile · optional','subtitle',s.subtitle)}
+      <label style="display:block;margin-bottom:16px;"><span class="lbl">Hinweis / Motivation · optional</span><textarea class="inp" data-f="note" rows="2" style="resize:vertical;line-height:1.4;">${esc(s.note||'')}</textarea></label>
+      ${cond}
+      <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#6c6e74;margin-top:16px;line-height:1.5;">Änderungen werden automatisch gesichert. „Dieses drucken" druckt das aktuelle Schild, „Alle drucken" alle (je 1 A4-Seite, Hoch/Quer automatisch).</div>
+    </div>`;
   }
 
-  // ---- events ----
-  function clickable(el, fn) {
-    el.addEventListener('click', fn);
-    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
+  function fitBox(d,maxW,maxH){ const sc=Math.min(maxW/d.w,maxH/d.h); return {scale:sc,boxW:Math.round(d.w*sc),boxH:Math.round(d.h*sc)}; }
+  function previewBox(data,scale,boxW,boxH,extra){ return `<div style="width:${boxW}px;height:${boxH}px;flex:none;box-shadow:0 18px 50px rgba(0,0,0,.5);border-radius:6px;overflow:hidden;${extra||''}"><div style="width:${data.w}px;height:${data.h}px;transform:scale(${scale});transform-origin:top left;">${schildHTML(data)}</div></div>`; }
+
+  function renderSignPreview(){
+    const s=scSel(); const host=$('scPreview'); const pane=$('scPreviewPane');
+    if(!s){ host.innerHTML=`<div style="color:#5a5d64;font:500 13px 'IBM Plex Mono',monospace;">Kein Schild ausgewählt.</div>`; return; }
+    const k=KINDS[s.kind]||KINDS.wayfind; const orient=s.orient||k.orient; const d=dims(orient);
+    const availW=Math.max(240,(pane.clientWidth||900)-60); const availH=Math.max(240,(pane.clientHeight||600)-90);
+    if(SC.compare){
+      const each=Math.max(200,(availW-34)/2);
+      const fc=fitBox(d,each,availH-40);
+      const A=enrichSign(s,'A'), B=enrichSign(s,'B');
+      host.innerHTML=`<div style="display:flex;gap:34px;align-items:flex-start;">
+        <div style="display:flex;flex-direction:column;gap:12px;align-items:center;"><div style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Stil A · Dunkel</div>${previewBox(A,fc.scale,fc.boxW,fc.boxH,'box-shadow:0 14px 40px rgba(0,0,0,.5);border-radius:5px;')}</div>
+        <div style="display:flex;flex-direction:column;gap:12px;align-items:center;"><div style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Stil B · Hell</div>${previewBox(B,fc.scale,fc.boxW,fc.boxH,'box-shadow:0 14px 40px rgba(0,0,0,.5);border-radius:5px;')}</div>
+      </div>`;
+    } else {
+      const fit=fitBox(d,Math.min(availW,820),availH);
+      const data=enrichSign(s,DB.signStyle);
+      host.innerHTML=`<div style="display:flex;flex-direction:column;gap:16px;align-items:center;"><div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · ${fmtLabel(orient)}</div>${previewBox(data,fit.scale,fit.boxW,fit.boxH)}<div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:440px;text-align:center;line-height:1.5;">Beim Druck „Tatsächliche Größe / 100 %" und Ränder „Keine" wählen.</div></div>`;
+    }
   }
 
-  function clearDropMarkers() {
-    tbody().querySelectorAll('tr[data-id]').forEach(tr => { tr.style.boxShadow = ''; delete tr.dataset.after; });
+  function renderSignToolbar(){
+    const setBtn=(el,on)=>{ if(on){el.style.background='#f4f3ef';el.style.color='#15161a';} else {el.style.background='transparent';el.style.color='#8a8d94';} };
+    setBtn($('scStyleA'),DB.signStyle==='A'); setBtn($('scStyleB'),DB.signStyle==='B');
+    const c=$('scCompare'); if(SC.compare){c.style.background='#f4f3ef';c.style.color='#15161a';c.style.borderColor='#f4f3ef';} else {c.style.background='#1d1f24';c.style.color='#c9cace';c.style.borderColor='#34373e';}
+  }
+  function renderSchilder(){ renderSignList(); renderSignEditor(); renderSignPreview(); renderSignToolbar(); }
+
+  // sign mutations
+  function scUpdate(f,v){ const s=scSel(); if(s){ s[f]=v; Store.saveSigns(); } }
+  function scChangeKind(kind){ const s=scSel(); if(!s)return; const k=KINDS[kind]; s.kind=kind; s.cat=k.cat; s.orient=k.orient; if((k.fam==='list'||k.fam==='rules'||k.fam==='callsheet')&&!Array.isArray(s.rows)) s.rows=[]; Store.saveSigns(); }
+  function scAdd(){ const s={id:uid('s'),kind:'wayfind',cat:'info',orient:'P',title:'Neues Schild',subtitle:'',note:''}; DB.signs.push(s); SC.selectedId=s.id; Store.saveSigns(); renderSchilder(); }
+  function scDup(){ const src=scSel(); if(!src)return; const s={...src,id:uid('s'),rows:src.rows?src.rows.map(r=>({...r})):undefined,title:src.title+' (Kopie)'}; DB.signs.push(s); SC.selectedId=s.id; Store.saveSigns(); renderSchilder(); }
+  function scDel(){ DB.signs=DB.signs.filter(s=>s.id!==SC.selectedId); SC.selectedId=DB.signs[0]?DB.signs[0].id:null; Store.saveSigns(); renderSchilder(); }
+  function scUpdateRow(i,f,v){ const s=scSel(); if(!s)return; s.rows=(s.rows||[]).map((r,idx)=>idx===i?{...r,[f]:v}:r); Store.saveSigns(); }
+  function scAddRow(){ const s=scSel(); if(!s)return; s.rows=[...(s.rows||[]),{a:'',b:'',c:''}]; Store.saveSigns(); renderSignEditor(); renderSignPreview(); }
+  function scRemoveRow(i){ const s=scSel(); if(!s)return; s.rows=(s.rows||[]).filter((r,idx)=>idx!==i); Store.saveSigns(); renderSignEditor(); renderSignPreview(); }
+
+  function scPrint(scope){ const sh=$('printSheet'); sh.style.padding='0';
+    const list = scope==='all'? DB.signs : (scSel()?[scSel()]:[]);
+    sh.innerHTML=list.map(s=>{ const k=KINDS[s.kind]||KINDS.wayfind; const or=s.orient||k.orient; const d=dims(or);
+      return `<div style="width:${d.w}px;height:${d.h}px;overflow:hidden;break-after:page;page:${or==='L'?'p_land':'p_portrait'};">${schildHTML(enrichSign(s,DB.signStyle))}</div>`; }).join('');
+    setTimeout(()=>window.print(),120);
   }
 
-  function wireTable() {
-    const tb = tbody();
-
-    // field edits — never rebuild the table here (keeps input focus)
-    const onField = (e) => {
-      const el = e.target.closest('[data-f]'); if (!el) return;
-      const id = el.getAttribute('data-id'), f = el.getAttribute('data-f');
-      update(id, f, el.value);
-      if (f === 'dept') {
-        const nr = tb.querySelector(`.nr[data-id="${id}"]`);
-        if (nr) nr.style.color = dept(el.value).color;
-      }
-      if (id === state.selectedId) renderPreview();
+  function wireSchilder(){
+    const view=$('viewSchilder');
+    const onInput=(e)=>{ const el=e.target.closest('[data-f],[data-row]'); if(!el)return;
+      if(el.hasAttribute('data-row')){ scUpdateRow(parseInt(el.getAttribute('data-row')),el.getAttribute('data-cell'),el.value); renderSignPreview(); return; }
+      const f=el.getAttribute('data-f');
+      if(f==='kind'){ scChangeKind(el.value); SC.selectedId=SC.selectedId; renderSchilder(); return; }
+      if(f==='cat'){ scUpdate('cat',el.value); renderSignList(); renderSignPreview(); return; }
+      scUpdate(f,el.value); if(f==='title') renderSignList(); renderSignPreview();
     };
-    tb.addEventListener('input', onField);
-    tb.addEventListener('change', onField);
-
-    tb.addEventListener('focusin', (e) => {
-      const el = e.target.closest('[data-id]'); if (el) selectRow(el.getAttribute('data-id'));
+    view.addEventListener('input',onInput); view.addEventListener('change',onInput);
+    view.addEventListener('click',(e)=>{ const a=e.target.closest('[data-sc-act]'); if(!a)return; const act=a.getAttribute('data-sc-act');
+      if(act==='select'){ const id=a.getAttribute('data-id'); if(SC.selectedId!==id){ SC.selectedId=id; renderSchilder(); } return; }
+      if(act==='add') return scAdd();
+      if(act==='dup') return scDup();
+      if(act==='del') return scDel();
+      if(act==='orientP'){ scUpdate('orient','P'); renderSchilder(); return; }
+      if(act==='orientL'){ scUpdate('orient','L'); renderSchilder(); return; }
+      if(act==='arrow'){ scUpdate('arrow',a.getAttribute('data-dir')); renderSignEditor(); renderSignPreview(); return; }
+      if(act==='addRow') return scAddRow();
+      if(act==='removeRow') return scRemoveRow(parseInt(a.getAttribute('data-row')));
+      if(act==='styleA'){ DB.signStyle='A'; Store.saveStyle(); renderSignToolbar(); renderSignPreview(); return; }
+      if(act==='styleB'){ DB.signStyle='B'; Store.saveStyle(); renderSignToolbar(); renderSignPreview(); return; }
+      if(act==='compare'){ SC.compare=!SC.compare; renderSignToolbar(); renderSignPreview(); return; }
+      if(act==='printOne') return scPrint('one');
+      if(act==='printAll') return scPrint('all');
     });
-
-    tb.addEventListener('click', (e) => {
-      const mark = e.target.closest('.mark');
-      if (mark) {
-        const id = mark.getAttribute('data-id'), m = mark.getAttribute('data-mark');
-        const p = byId(id); if (!p) return;
-        p[m] = !p[m]; persist();
-        mark.setAttribute('style', markStyle(m, p[m]));
-        if (id === state.selectedId) renderPreview();
-        return;
-      }
-      const arr = e.target.closest('.arr');
-      if (arr) { moveBy(arr.getAttribute('data-id'), arr.getAttribute('data-dir') === 'up' ? -1 : 1); return; }
-      const act = e.target.closest('.act');
-      if (act) {
-        const id = act.getAttribute('data-id'), a = act.getAttribute('data-act');
-        if (a === 'preview') { selectRow(id); $('previewPane').scrollIntoView({behavior:'smooth', block:'nearest'}); }
-        else if (a === 'print') doPrintOne(id);
-        else if (a === 'dup') dup(id);
-        else if (a === 'del') del(id);
-        return;
-      }
-      const tr = e.target.closest('tr[data-id]');
-      if (tr) selectRow(tr.getAttribute('data-id'));
-    });
-
-    // drag & drop reorder (only from the grip handle)
-    tb.addEventListener('dragstart', (e) => {
-      if (!e.target.classList || !e.target.classList.contains('grip')) { e.preventDefault(); return; }
-      const tr = e.target.closest('tr[data-id]'); if (!tr) return;
-      state.dragId = tr.getAttribute('data-id');
-      e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', state.dragId); } catch (err) {}
-    });
-    tb.addEventListener('dragover', (e) => {
-      if (!state.dragId) return;
-      const tr = e.target.closest('tr[data-id]'); if (!tr) return;
-      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-      const rect = tr.getBoundingClientRect();
-      const after = e.clientY > rect.top + rect.height / 2;
-      clearDropMarkers();
-      tr.style.boxShadow = after ? 'inset 0 -2px 0 0 #4f8cff' : 'inset 0 2px 0 0 #4f8cff';
-      tr.dataset.after = after ? '1' : '0';
-    });
-    tb.addEventListener('drop', (e) => {
-      if (!state.dragId) return;
-      const tr = e.target.closest('tr[data-id]'); if (!tr) { state.dragId = null; clearDropMarkers(); return; }
-      e.preventDefault();
-      moveItem(state.dragId, tr.getAttribute('data-id'), tr.dataset.after === '1');
-      state.dragId = null;
-    });
-    tb.addEventListener('dragend', () => { state.dragId = null; clearDropMarkers(); });
   }
 
-  function init() {
-    load();
-    $('roleList').innerHTML = ROLES.map(r => `<option value="${esc(r)}"></option>`).join('');
-    $('filmTitle').value = state.filmTitle;
-
-    $('filmTitle').addEventListener('input', (e) => { state.filmTitle = e.target.value; persist(); renderPreview(); });
-    clickable($('btnAdd'), add);
-    clickable($('btnPrintAll'), doPrintAll);
-
-    const styleSortBtn = () => {
-      const b = $('btnSortDept');
-      if (state.sortByDept) { b.style.background = '#f4f3ef'; b.style.color = '#15161a'; b.style.borderColor = '#f4f3ef'; b.style.fontWeight = '700'; }
-      else { b.style.background = '#1d1f24'; b.style.color = '#c9cace'; b.style.borderColor = '#34373e'; b.style.fontWeight = '600'; }
-    };
-    clickable($('btnSortDept'), () => { state.sortByDept = !state.sortByDept; styleSortBtn(); renderTable(); });
-    styleSortBtn();
-
-    wireTable();
-    window.addEventListener('resize', fitPreview);
-    window.addEventListener('orientationchange', fitPreview);
-
-    renderTable(); renderPreview();
+  /* ===================== tabs + init ===================== */
+  let activeTab='ausweise';
+  function switchTab(t){ activeTab=t;
+    $('viewAusweise').style.display = t==='ausweise'?'flex':'none';
+    $('viewSchilder').style.display = t==='schilder'?'flex':'none';
+    document.querySelectorAll('#tabs .tab').forEach(b=>b.classList.toggle('on',b.getAttribute('data-tab')===t));
+    if(t==='ausweise') renderAuPreview(); else renderSchilder();
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  function init(){
+    Store.load();
+    $('roleList').innerHTML=ROLES.map(r=>`<option value="${esc(r)}"></option>`).join('');
+    $('filmTitle').value=DB.filmTitle;
+    AU.selectedId=DB.people[0]?DB.people[0].id:null;
+    SC.selectedId=DB.signs[0]?DB.signs[0].id:null;
+
+    $('filmTitle').addEventListener('input',(e)=>{ DB.filmTitle=e.target.value; Store.saveFilm(); if(activeTab==='ausweise') renderAuPreview(); else renderSignPreview(); });
+    document.querySelectorAll('#tabs .tab').forEach(b=>b.addEventListener('click',()=>switchTab(b.getAttribute('data-tab'))));
+    window.addEventListener('resize',()=>{ if(activeTab==='ausweise') fitAuPreview(); else renderSignPreview(); });
+    window.addEventListener('orientationchange',()=>{ if(activeTab==='ausweise') fitAuPreview(); else renderSignPreview(); });
+
+    wirePeople(); wireSchilder();
+    renderPeople(); renderAuPreview();
+    switchTab('ausweise');
+  }
+  document.addEventListener('DOMContentLoaded',init);
 })();
 </script>
 </body>
