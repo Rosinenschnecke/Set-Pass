@@ -68,15 +68,31 @@
   @page p_portrait{size:A4 portrait;margin:0;}
   @page p_land{size:A4 landscape;margin:0;}
   @media print{
-    #app{display:none !important;}
-    #printSheet{display:block !important;}
-    *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
+    html,body{background:#fff !important;}
+    #app,#gate{display:none !important;}
+    #printSheet{display:block !important;background:#fff !important;}
+    #printSheet, #printSheet *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
   }
+
+  /* password gate */
+  #gate{position:fixed;inset:0;z-index:50;background:#15161a;display:flex;align-items:center;justify-content:center;padding:24px;}
+  #gate .box{width:340px;max-width:100%;background:#1a1c20;border:1px solid #2a2c31;border-radius:14px;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
 </style>
 </head>
 <body>
 
-<div id="app" style="min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;">
+<!-- Password gate -->
+<div id="gate">
+  <form class="box" id="gateForm" autocomplete="off">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="width:12px;height:12px;background:#f4f3ef;transform:rotate(45deg);display:block;"></span><span style="font:700 16px 'Saira Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#f4f3ef;">XY Pictures · Crew-Tools</span></div>
+    <div style="font:500 11px 'IBM Plex Mono',monospace;color:#8a8d94;line-height:1.5;margin-bottom:18px;">Geschützter Bereich. Bitte Projekt-Passwort eingeben. Die Daten werden mit diesem Passwort verschlüsselt gespeichert.</div>
+    <input id="gatePw" type="password" placeholder="Passwort" style="width:100%;background:#1d1f24;border:1px solid #34373e;border-radius:8px;padding:11px 13px;color:#f4f3ef;font:500 14px 'IBM Plex Mono',monospace;outline:none;">
+    <div id="gateMsg" style="font:500 11px 'IBM Plex Mono',monospace;color:#e0a04a;min-height:16px;margin:8px 2px 0;"></div>
+    <button type="submit" id="gateBtn" style="width:100%;margin-top:10px;cursor:pointer;background:#f4f3ef;color:#15161a;border:none;border-radius:8px;padding:12px;font:700 12px 'IBM Plex Mono',monospace;letter-spacing:.08em;">ENTSPERREN</button>
+  </form>
+</div>
+
+<div id="app" style="display:none;min-height:100vh;min-height:100dvh;flex-direction:column;">
 
   <!-- Global topbar -->
   <div id="topbar" style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 24px;border-bottom:1px solid #2a2c31;flex:none;">
@@ -107,6 +123,7 @@
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #2a2c31;flex:none;flex-wrap:wrap;">
       <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Personal · <span id="auCount">0</span></span>
       <div style="display:flex;align-items:center;gap:10px;">
+        <div id="auStyleToggle" class="act" role="button" tabindex="0" style="padding:8px 14px;">Design: Dunkel</div>
         <div id="auSort" class="act" role="button" tabindex="0" style="padding:8px 14px;">Nach Department sortieren</div>
         <div id="auAdd" class="act" role="button" tabindex="0" style="padding:8px 14px;font-weight:700;">+ NEU</div>
         <div id="auPrintAll" class="act primary" role="button" tabindex="0" style="padding:8px 14px;"><span style="width:7px;height:7px;background:#15161a;transform:rotate(45deg);display:block;margin-right:7px;"></span>ALLE DRUCKEN</div>
@@ -207,12 +224,16 @@
   };
 
   const FILM_DEFAULT = 'The Massacre of Love';
-  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A' };
+  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A', auStyle: 'dark' };
+  const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+  const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  function isoOf(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+  function dateParts(iso){ if(!iso) return {week:'',date:''}; const d=new Date(iso+'T00:00:00'); if(isNaN(d)) return {week:'',date:''}; return {week:WEEKDAYS[d.getDay()], date:d.getDate()+'. '+MONTHS[d.getMonth()]}; }
 
   /* ===================== storage layer ===================== */
   // Single local "database". Swap these for a cloud adapter (e.g. Supabase REST)
   // to get true cross-device storage — same shape, just async.
-  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1' };
+  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1' };
   const uid = (p) => p + Math.random().toString(36).slice(2, 9);
 
   function normPerson(p){ return { id:p.id||uid('p'), name:p.name||'', dept:DEPTS[p.dept]?p.dept:'TE', role:p.role||'', filmRole:p.filmRole||'', head:!!p.head, media:!!p.media, legacy:!!p.legacy, lehrer:!!p.lehrer }; }
@@ -235,7 +256,7 @@
     {id:uid('s'),kind:'namelist',cat:'crew',orient:'P',title:'Crew am Set',subtitle:'Wer heute am Set ist – Ausweis bitte sichtbar tragen.'},
     {id:uid('s'),kind:'phonelist',cat:'info',orient:'P',title:'Wichtige Nummern',subtitle:'Im Zweifel: erst anrufen, dann handeln.',rows:[{a:'Produktionsleitung',b:'Lena Vogt',c:'0151 234 567'},{a:'1. Regieassistenz',b:'Jonas Brandt',c:'0151 234 568'},{a:'Set-Aufsicht / Schule',b:'Hr. Albers',c:'030 555 0123'},{a:'Hausmeister',b:'Hr. Pohl',c:'030 555 0144'},{a:'Notruf',b:'Rettung / Feuerwehr',c:'112'}]},
     {id:uid('s'),kind:'callsheet',cat:'info',orient:'P',title:'Drehplan – heute',subtitle:'Alle Zeiten & Szenen stehen im digitalen Drehplan.',rows:[{a:'Datum',b:'Mo · 14. Juli'},{a:'Crew-Call',b:'08:00 Uhr'},{a:'1. Klappe',b:'09:00 Uhr'},{a:'Drehort',b:'Aula / Raum 1.04'},{a:'Wrap geplant',b:'17:30 Uhr'}],note:'Änderungen kommen in den Drehplan – bitte morgens kurz checken.'},
-    {id:uid('s'),kind:'daydivider',cat:'crew',orient:'P',title:'Drehtag',dayNum:'03',dayWeek:'Montag',dayDate:'14. Juli',totalDays:'8',note:'Jeder Tag bringt uns der Premiere näher. Heute geben wir alles!'},
+    {id:uid('s'),kind:'daydivider',cat:'crew',orient:'P',title:'Drehtag',dayNum:'01',dayDateISO:'2026-07-13',totalDays:'8',skipWeekend:true,offDays:[],note:'Jeder Tag bringt uns der Premiere näher. Heute geben wir alles!'},
     {id:uid('s'),kind:'progress',cat:'go',orient:'P',title:'Im Kasten',done:'18',total:'40',unit:'Szenen',note:'Jede abgedrehte Szene ist ein Schritt Richtung Leinwand.'},
     {id:uid('s'),kind:'rules',cat:'crew',orient:'P',title:'Set-Regeln',subtitle:'Damit alle gerne und sicher arbeiten.',rows:[{a:'Bei „Ruhe bitte" ab sofort nur noch flüstern – bis „Danke".'},{a:'Crew-Ausweis immer sichtbar tragen.'},{a:'Handys lautlos. Kein Filmen oder Fotografieren am Set.'},{a:'Auf Kabel & Technik achten – nichts ohne Absprache bewegen.'},{a:'Eigenen Müll mitnehmen, Set sauber halten.'},{a:'Respektvoll, pünktlich, hilfsbereit – wir sind ein Team.'}]},
   ]; }
@@ -246,7 +267,31 @@
     signs(){ try{ localStorage.setItem(K.signs, JSON.stringify(DB.signs)); }catch(e){} },
     film(){ try{ localStorage.setItem(K.film, DB.filmTitle); }catch(e){} },
     style(){ try{ localStorage.setItem(K.style, DB.signStyle); }catch(e){} },
-    all(){ this.people(); this.signs(); this.film(); this.style(); },
+    austyle(){ try{ localStorage.setItem(K.austyle, DB.auStyle); }catch(e){} },
+    all(){ this.people(); this.signs(); this.film(); this.style(); this.austyle(); },
+  };
+
+  // ---- client-side encryption (password protects the cloud data) ----
+  const b64 = (u8)=>btoa(String.fromCharCode(...u8));
+  const unb64 = (s)=>Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+  const Crypto = {
+    key:null,
+    async derive(pw){
+      const enc=new TextEncoder();
+      const base=await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+      this.key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:enc.encode('xy-crew-tools-v1'),iterations:120000,hash:'SHA-256'}, base, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+    },
+    async encrypt(obj){
+      const iv=crypto.getRandomValues(new Uint8Array(12));
+      const data=new TextEncoder().encode(JSON.stringify(obj));
+      const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv}, this.key, data));
+      return b64(iv)+'.'+b64(ct);
+    },
+    async decrypt(str){
+      const [ivb,ctb]=String(str).split('.');
+      const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(ivb)}, this.key, unb64(ctb));
+      return JSON.parse(new TextDecoder().decode(pt));
+    },
   };
 
   // ---- Supabase cloud sync (global database) ----
@@ -255,14 +300,25 @@
   const SUPA_H = { 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY, 'Content-Type':'application/json' };
   const Cloud = {
     enabled:true, lastEdit:0, lastSeen:0, busy:false, timer:null,
-    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle }; },
+    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle, auStyle:DB.auStyle }; },
     status(t,c){ const el=$('cloudStatus'); if(el){ el.textContent=t; el.style.color=c||'#6c6e74'; } },
     schedule(){ this.lastEdit=Date.now(); if(!this.enabled) return; clearTimeout(this.timer); this.timer=setTimeout(()=>this.push(),800); },
+    // read the remote row; returns {data, updated_at} (data decrypted) or null
+    async fetchRow(){
+      const r=await fetch(`${SUPA_URL}/crew_state?id=eq.main&select=data,updated_at`,{headers:SUPA_H});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const rows=await r.json(); const row=rows&&rows[0];
+      if(!row||!row.data) return {data:null, updated_at:row?row.updated_at:null};
+      let data=row.data;
+      if(data.enc){ data=await Crypto.decrypt(data.enc); }   // encrypted blob
+      return {data, updated_at:row.updated_at};
+    },
     async push(){
       if(!this.enabled) return; this.busy=true; this.status('Cloud · speichern…','#8a8d94');
       try{
         const updated_at=new Date().toISOString();
-        const r=await fetch(`${SUPA_URL}/crew_state?on_conflict=id`,{method:'POST',headers:{...SUPA_H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([{id:'main',data:this.snapshot(),updated_at}])});
+        const enc=await Crypto.encrypt(this.snapshot());
+        const r=await fetch(`${SUPA_URL}/crew_state?on_conflict=id`,{method:'POST',headers:{...SUPA_H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([{id:'main',data:{enc},updated_at}])});
         if(!r.ok) throw new Error('HTTP '+r.status);
         this.lastSeen=Date.parse(updated_at)||this.lastSeen; this.status('Cloud · synchron','#6ee7b7');
       }catch(e){ this.status('Cloud · offline (lokal gesichert)','#e0a04a'); }
@@ -271,15 +327,13 @@
     async pull(initial){
       if(!this.enabled) return;
       try{
-        const r=await fetch(`${SUPA_URL}/crew_state?id=eq.main&select=data,updated_at`,{headers:SUPA_H});
-        if(!r.ok) throw new Error('HTTP '+r.status);
-        const rows=await r.json(); const row=rows&&rows[0];
-        const hasRemote = row && row.data && (Array.isArray(row.data.people)||Array.isArray(row.data.signs));
+        const {data,updated_at}=await this.fetchRow();
+        const hasRemote = data && (Array.isArray(data.people)||Array.isArray(data.signs));
         if(!hasRemote){ await this.push(); return; }                  // remote empty -> seed it from local
-        const ru=Date.parse(row.updated_at)||0;
-        if(initial){ applySnapshot(row.data); this.lastSeen=ru; renderActive(); this.status('Cloud · synchron','#6ee7b7'); return; }
+        const ru=Date.parse(updated_at)||0;
+        if(initial){ applySnapshot(data); this.lastSeen=ru; renderActive(); this.status('Cloud · synchron','#6ee7b7'); return; }
         if(ru>this.lastSeen && (Date.now()-this.lastEdit>5000)){      // newer remote & not mid-edit
-          applySnapshot(row.data); this.lastSeen=ru; renderActive(); this.status('Cloud · aktualisiert','#6ee7b7');
+          applySnapshot(data); this.lastSeen=ru; renderActive(); this.status('Cloud · aktualisiert','#6ee7b7');
         }
       }catch(e){ this.status('Cloud · offline (lokal)','#e0a04a'); }
     },
@@ -295,11 +349,13 @@
       DB.signs = (Array.isArray(s)&&s.length? s : seedSigns());
       DB.filmTitle = (()=>{ try{ return localStorage.getItem(K.film)||FILM_DEFAULT; }catch(e){ return FILM_DEFAULT; } })();
       DB.signStyle = (()=>{ try{ return localStorage.getItem(K.style)||'A'; }catch(e){ return 'A'; } })();
+      DB.auStyle = (()=>{ try{ return localStorage.getItem(K.austyle)||'dark'; }catch(e){ return 'dark'; } })();
     },
     savePeople(){ LS.people(); Cloud.schedule(); },
     saveSigns(){ LS.signs(); Cloud.schedule(); },
     saveFilm(){ LS.film(); Cloud.schedule(); },
     saveStyle(){ LS.style(); Cloud.schedule(); },
+    saveAuStyle(){ LS.austyle(); Cloud.schedule(); },
   };
 
   // Replace whole DB from a remote snapshot, write-through to the local cache.
@@ -309,6 +365,7 @@
     if(Array.isArray(data.signs)) DB.signs=data.signs;
     if(typeof data.filmTitle==='string') DB.filmTitle=data.filmTitle;
     if(data.signStyle==='A'||data.signStyle==='B') DB.signStyle=data.signStyle;
+    if(data.auStyle==='dark'||data.auStyle==='light') DB.auStyle=data.auStyle;
     LS.all();
   }
   // Re-render the active view after a remote change (without clobbering active typing).
@@ -330,8 +387,16 @@
       p.media?`<span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.13 200);border-radius:5px;padding:5px 10px;color:#0c1414;"><span style="width:10px;height:15px;border:2px solid #0c1414;border-radius:2px;display:block;"></span><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">MEDIA</span></span>`:'',
       p.legacy?`<span style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#f6dd8b,#d4af37);border-radius:5px;padding:5px 10px;color:#3a2c05;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M4 5l2.5 3H9L6.5 5H8l2.5 3h2L10 5h1.5L14 8h2l-2.5-3H20a1 1 0 0 1 1 1v3H3V6a1 1 0 0 1 1-1zM3 11h18v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">LEGACY</span></span>`:'',
     ].join('');
+    const light = DB.auStyle==='light';
+    const cardBg = light?'#ffffff':'#26282d';
+    const filmCol = light?'#6c6e74':'#a7a9af';
+    const nameCol = light?'#15161a':'#ffffff';
+    const nameShadow = light?'':'text-shadow:0 1px 8px rgba(0,0,0,.35);';
+    const roleCol = light?d.color:d.role;
+    const frLabel = light?'#9a9ca3':'#7b7d83';
+    const emblem = light?'':`<img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:80px;height:80px;display:block;flex:none;opacity:.95;">`;
     return `
-    <div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:#26282d;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+    <div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:${cardBg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">
       <div style="height:94px;background:${d.color};display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:0 24px 14px;">
         <div style="font:700 36px 'Saira Condensed',sans-serif;color:${d.band};letter-spacing:.05em;text-transform:uppercase;line-height:.9;white-space:nowrap;">${esc(d.name)}</div>
         <div style="display:flex;align-items:flex-end;justify-content:flex-end;flex-wrap:wrap;gap:8px;flex:1;min-width:0;">${badges}</div>
@@ -339,13 +404,13 @@
       <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
       <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
         <div style="min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#a7a9af;text-transform:uppercase;">${esc(DB.filmTitle)}</span></div>
-          <div style="font:700 ${nameSize(p.name)}px 'Saira Condensed',sans-serif;color:#ffffff;text-transform:uppercase;line-height:.9;letter-spacing:.005em;overflow-wrap:anywhere;text-shadow:0 1px 8px rgba(0,0,0,.35);">${esc(p.name)}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:${filmCol};text-transform:uppercase;">${esc(DB.filmTitle)}</span></div>
+          <div style="font:700 ${nameSize(p.name)}px 'Saira Condensed',sans-serif;color:${nameCol};text-transform:uppercase;line-height:.9;letter-spacing:.005em;overflow-wrap:anywhere;${nameShadow}">${esc(p.name)}</div>
           <div style="width:58px;height:4px;background:${d.color};margin-top:11px;"></div>
-          <div style="font:500 15px 'IBM Plex Mono',monospace;color:${d.role};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
-          ${hasFilmRole?`<div style="font:500 9.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div><div style="font:600 23px 'Saira Condensed',sans-serif;color:${d.role};margin-top:2px;text-transform:uppercase;letter-spacing:.02em;">${esc(p.filmRole)}</div>`:''}
+          <div style="font:500 15px 'IBM Plex Mono',monospace;color:${roleCol};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
+          ${hasFilmRole?`<div style="font:500 9.5px 'IBM Plex Mono',monospace;color:${frLabel};letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div><div style="font:600 23px 'Saira Condensed',sans-serif;color:${roleCol};margin-top:2px;text-transform:uppercase;letter-spacing:.02em;">${esc(p.filmRole)}</div>`:''}
         </div>
-        <img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:80px;height:80px;display:block;flex:none;opacity:.95;">
+        ${emblem}
       </div>
       <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid ${d.color};display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
         <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:26px;display:block;">
@@ -433,6 +498,8 @@
 
     const styleSort=()=>{ const b=$('auSort'); if(AU.sortByDept){b.style.background='#f4f3ef';b.style.color='#15161a';b.style.borderColor='#f4f3ef';b.style.fontWeight='700';} else {b.style.background='#1d1f24';b.style.color='#c9cace';b.style.borderColor='#34373e';b.style.fontWeight='600';} };
     $('auSort').addEventListener('click',()=>{ AU.sortByDept=!AU.sortByDept; styleSort(); renderPeople(); }); styleSort();
+    const styleAu=()=>{ const b=$('auStyleToggle'); b.textContent='Design: '+(DB.auStyle==='light'?'Hell':'Dunkel'); if(DB.auStyle==='light'){b.style.background='#f4f3ef';b.style.color='#15161a';b.style.borderColor='#f4f3ef';} else {b.style.background='#1d1f24';b.style.color='#c9cace';b.style.borderColor='#34373e';} };
+    $('auStyleToggle').addEventListener('click',()=>{ DB.auStyle=DB.auStyle==='light'?'dark':'light'; Store.saveAuStyle(); styleAu(); renderAuPreview(); }); styleAu();
     $('auAdd').addEventListener('click',auAdd);
     $('auPrintAll').addEventListener('click',auPrintAll);
   }
@@ -444,7 +511,7 @@
   /* ===================== SCHILD rendering ===================== */
   function dims(or){ return or==='L'?{w:1123,h:794,bandH:84,heroFont:104}:{w:794,h:1123,bandH:92,heroFont:92}; }
   function styleVals(st){ return st==='B'
-    ? {bg:'#f4f3ef',fg:'#15161a',muted:'#6c6e74',subColor:'#3a3d43',rowLine:'#dcd9d0',trackBg:'#e3e0d7',frameCss:'border:1px solid #d8d6cf;'}
+    ? {bg:'#ffffff',fg:'#15161a',muted:'#6c6e74',subColor:'#3a3d43',rowLine:'#e2e0d9',trackBg:'#ededea',frameCss:'border:1px solid #e2e0d9;'}
     : {bg:'#15161a',fg:'#f4f3ef',muted:'#8a8d94',subColor:'#c9cace',rowLine:'#2a2c31',trackBg:'#26282d',frameCss:''}; }
   function encourage(p){ if(p<=0)return 'Klappe – los geht’s!'; if(p<25)return 'Warmgelaufen.'; if(p<50)return 'Stark – weiter so!'; if(p<60)return 'Halbzeit! Bergfest.'; if(p<80)return 'Über die Hälfte im Kasten.'; if(p<100)return 'Endspurt – fast geschafft!'; return 'Alles im Kasten. Wrap!'; }
 
@@ -474,8 +541,8 @@
     } else if(fam==='callsheet'){
       b.rows=(s.rows||[]).map(r=>({a:r.a||'',b:r.b||''}));
     } else if(fam==='day'){
-      const dn=parseInt(s.dayNum)||0, tot=parseInt(s.totalDays)||0;
-      b.dayNum=s.dayNum||''; b.dayWeek=s.dayWeek||''; b.dayDate=s.dayDate||''; b.daysLeft=Math.max(tot-dn,0);
+      const dn=parseInt(s.dayNum)||0, tot=parseInt(s.totalDays)||0; const dp=dateParts(s.dayDateISO);
+      b.dayNum=s.dayNum||''; b.dayWeek=dp.week||s.dayWeek||''; b.dayDate=dp.date||s.dayDate||''; b.daysLeft=Math.max(tot-dn,0);
       b.pips=Array.from({length:Math.min(tot,16)},(_,i)=>({bg:i<dn?cat.c:sv.trackBg}));
     } else if(fam==='progress'){
       const dn=parseInt(s.done)||0, tot=parseInt(s.total)||0; const pct=tot>0?Math.max(0,Math.min(100,Math.round(dn/tot*100))):0;
@@ -506,7 +573,7 @@
     return `<div style="width:100%;height:100%;position:relative;background:${d.bg};font-family:'IBM Plex Mono',monospace;overflow:hidden;display:flex;flex-direction:column;${d.frameCss}print-color-adjust:exact;-webkit-print-color-adjust:exact;">
       <div style="flex:none;height:${d.bandH}px;background:${d.accent};display:flex;align-items:center;justify-content:space-between;padding:0 48px;"><div style="display:flex;align-items:center;gap:16px;"><span style="width:18px;height:18px;background:${d.accentFg};transform:rotate(45deg);display:block;"></span><span style="font:600 30px 'IBM Plex Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:${d.accentFg};">${esc(d.eyebrow)}</span></div><span style="font:600 18px 'IBM Plex Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:${d.accentFg};opacity:.82;">${esc(d.film)}</span></div>
       ${hero}${list}${rules}${callsheet}${day}${progress}
-      <div style="flex:none;height:84px;background:#15161a;border-top:3px solid ${d.accent};display:flex;align-items:center;justify-content:space-between;padding:0 40px;"><img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:30px;display:block;"><span style="font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#7c7f86;">XY Pictures · Heinrich-Hertz-Gymnasium</span><img src="assets/school-emblem-white.png" alt="HHG" style="height:46px;width:46px;display:block;opacity:.9;"></div>
+      <div style="flex:none;height:84px;background:#15161a;border-top:3px solid ${d.accent};display:flex;align-items:center;justify-content:space-between;padding:0 40px;"><img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:30px;display:block;"><span style="font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#7c7f86;">XY Pictures · Heinrich-Hertz-Gymnasium${d.pageLabel?` · ${esc(d.pageLabel)}`:''}</span><img src="assets/school-emblem-white.png" alt="HHG" style="height:46px;width:46px;display:block;opacity:.9;"></div>
     </div>`;
   }
 
@@ -543,7 +610,22 @@
     if(s.kind==='arrow'){ const a=s.arrow||'R'; const bt=(dir,gl)=>{const t=tgl(a===dir);return `<div data-sc-act="arrow" data-dir="${dir}" style="flex:1;text-align:center;cursor:pointer;border-radius:7px;padding:12px 0;font:700 16px 'IBM Plex Mono',monospace;background:${t.bg};border:1px solid ${t.bd};color:${t.fg};">${gl}</div>`;};
       cond=`<div style="margin-bottom:16px;"><span class="lbl">Pfeilrichtung</span><div style="display:flex;gap:8px;">${bt('L','←')}${bt('U','↑')}${bt('D','↓')}${bt('R','→')}</div></div>`;
     } else if(fam==='day'){
-      cond=`<div style="margin-bottom:8px;display:flex;gap:12px;"><label style="width:96px;flex:none;"><span class="lbl">Tag-Nr.</span><input class="inp" data-f="dayNum" value="${esc(s.dayNum||'')}"></label><label style="flex:1;"><span class="lbl">Wochentag</span><input class="inp" data-f="dayWeek" value="${esc(s.dayWeek||'')}"></label></div><div style="margin-bottom:16px;display:flex;gap:12px;"><label style="flex:1;"><span class="lbl">Datum</span><input class="inp" data-f="dayDate" value="${esc(s.dayDate||'')}"></label><label style="width:120px;flex:none;"><span class="lbl">Drehtage ges.</span><input class="inp" data-f="totalDays" value="${esc(s.totalDays||'')}"></label></div>`;
+      const skipW=s.skipWeekend!==false; const off=s.offDays||[];
+      const offRows=off.map((o,i)=>`<div style="display:flex;gap:6px;align-items:center;"><input type="date" class="inp" data-off="${i}" value="${esc(o)}" style="flex:1;min-width:0;"><div data-sc-act="removeOff" data-row="${i}" style="cursor:pointer;flex:none;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid #34373e;border-radius:6px;color:#7c7f86;font:600 13px 'IBM Plex Mono',monospace;">✕</div></div>`).join('');
+      cond=`<div style="margin-bottom:12px;display:flex;gap:12px;">
+          <label style="width:90px;flex:none;"><span class="lbl">Tag-Nr.</span><input class="inp" data-f="dayNum" value="${esc(s.dayNum||'')}"></label>
+          <label style="flex:1;"><span class="lbl">Datum</span><input type="date" class="inp" data-f="dayDateISO" value="${esc(s.dayDateISO||'')}"></label>
+          <label style="width:110px;flex:none;"><span class="lbl">Tage ges.</span><input class="inp" data-f="totalDays" value="${esc(s.totalDays||'')}"></label>
+        </div>
+        <div style="margin-bottom:14px;font:500 11px 'IBM Plex Mono',monospace;color:#8a8d94;">Wochentag automatisch: <b style="color:#c9cace;">${esc(dateParts(s.dayDateISO).week||'— (Datum wählen)')}</b></div>
+        <div style="margin-bottom:8px;border:1px solid #2a2c31;border-radius:8px;padding:13px;">
+          <span class="lbl">Alle Drehtage erzeugen</span>
+          <div data-sc-act="toggleWeekend" style="cursor:pointer;display:inline-flex;align-items:center;gap:9px;margin-bottom:12px;font:600 11px 'IBM Plex Mono',monospace;color:${skipW?'#f4f3ef':'#8a8d94'};user-select:none;"><span style="width:34px;height:18px;border-radius:9px;background:${skipW?'#4f8cff':'#34373e'};position:relative;display:inline-block;flex:none;"><span style="position:absolute;top:2px;${skipW?'right:2px;':'left:2px;'}width:14px;height:14px;border-radius:50%;background:#fff;"></span></span>Wochenenden überspringen (Sa/So)</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><span class="lbl" style="margin-bottom:0;">Drehfreie Tage / Ausnahmen</span><div data-sc-act="addOff" class="act" style="padding:5px 10px;">+ TAG</div></div>
+          <div style="display:flex;flex-direction:column;gap:7px;">${offRows}</div>
+          <div data-sc-act="genDays" class="act primary" style="margin-top:12px;padding:10px 14px;justify-content:center;width:100%;">DREHTAG-SCHILDER ERZEUGEN</div>
+          <div style="font:400 10px 'IBM Plex Mono',monospace;color:#6c6e74;margin-top:8px;line-height:1.5;">Erzeugt ab diesem Datum (= Tag 1) so viele Drehtage wie „Tage ges.". Wochenenden &amp; Ausnahmen werden übersprungen. Ersetzt vorhandene Drehtag-Schilder.</div>
+        </div>`;
     } else if(fam==='progress'){
       cond=`<div style="margin-bottom:16px;display:flex;gap:12px;"><label style="width:90px;flex:none;"><span class="lbl">Geschafft</span><input class="inp" data-f="done" value="${esc(s.done||'')}"></label><label style="width:90px;flex:none;"><span class="lbl">Gesamt</span><input class="inp" data-f="total" value="${esc(s.total||'')}"></label><label style="flex:1;"><span class="lbl">Einheit</span><input class="inp" data-f="unit" value="${esc(s.unit||'')}"></label></div>`;
     } else if(s.kind==='namelist'){
@@ -565,6 +647,18 @@
     </div>`;
   }
 
+  // split long lists over several A4 pages
+  function rowsPerPage(fam,orient){ if(orient==='L') return fam==='rules'?6:(fam==='callsheet'?8:10); return fam==='rules'?10:(fam==='callsheet'?13:15); }
+  function signPages(s,style){
+    const data=enrichSign(s,style); const fam=(KINDS[s.kind]||KINDS.wayfind).fam;
+    if(!(fam==='list'||fam==='rules'||fam==='callsheet') || !data.rows || data.rows.length===0) return [data];
+    const or=s.orient||KINDS[s.kind].orient; const rpp=rowsPerPage(fam,or);
+    if(data.rows.length<=rpp) return [data];
+    const cnt=Math.ceil(data.rows.length/rpp); const pages=[];
+    for(let i=0;i<cnt;i++) pages.push({...data, rows:data.rows.slice(i*rpp,(i+1)*rpp), pageLabel:`Seite ${i+1}/${cnt}`});
+    return pages;
+  }
+
   function fitBox(d,maxW,maxH){ const sc=Math.min(maxW/d.w,maxH/d.h); return {scale:sc,boxW:Math.round(d.w*sc),boxH:Math.round(d.h*sc)}; }
   function previewBox(data,scale,boxW,boxH,extra){ return `<div style="width:${boxW}px;height:${boxH}px;flex:none;box-shadow:0 18px 50px rgba(0,0,0,.5);border-radius:6px;overflow:hidden;${extra||''}"><div style="width:${data.w}px;height:${data.h}px;transform:scale(${scale});transform-origin:top left;">${schildHTML(data)}</div></div>`; }
 
@@ -583,8 +677,11 @@
       </div>`;
     } else {
       const fit=fitBox(d,Math.min(availW,820),availH);
-      const data=enrichSign(s,DB.signStyle);
-      host.innerHTML=`<div style="display:flex;flex-direction:column;gap:16px;align-items:center;"><div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · ${fmtLabel(orient)}</div>${previewBox(data,fit.scale,fit.boxW,fit.boxH)}<div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:440px;text-align:center;line-height:1.5;">Beim Druck „Tatsächliche Größe / 100 %" und Ränder „Keine" wählen.</div></div>`;
+      const pages=signPages(s,DB.signStyle); const data=pages[0];
+      const note = pages.length>1
+        ? `Lange Liste: ${data.rows.length<0?'':''}wird beim Druck auf <b style="color:#9a9ca3;">${pages.length} Seiten</b> verteilt (Vorschau zeigt Seite 1).`
+        : 'Beim Druck „Tatsächliche Größe / 100 %" und Ränder „Keine" wählen.';
+      host.innerHTML=`<div style="display:flex;flex-direction:column;gap:16px;align-items:center;"><div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · ${fmtLabel(orient)}</div>${previewBox(data,fit.scale,fit.boxW,fit.boxH)}<div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:440px;text-align:center;line-height:1.5;">${note}</div></div>`;
     }
   }
 
@@ -604,21 +701,48 @@
   function scUpdateRow(i,f,v){ const s=scSel(); if(!s)return; s.rows=(s.rows||[]).map((r,idx)=>idx===i?{...r,[f]:v}:r); Store.saveSigns(); }
   function scAddRow(){ const s=scSel(); if(!s)return; s.rows=[...(s.rows||[]),{a:'',b:'',c:''}]; Store.saveSigns(); renderSignEditor(); renderSignPreview(); }
   function scRemoveRow(i){ const s=scSel(); if(!s)return; s.rows=(s.rows||[]).filter((r,idx)=>idx!==i); Store.saveSigns(); renderSignEditor(); renderSignPreview(); }
+  // Drehtag generation
+  function scUpdateOff(i,v){ const s=scSel(); if(!s)return; const off=(s.offDays||[]).slice(); off[i]=v; s.offDays=off; Store.saveSigns(); }
+  function scAddOff(){ const s=scSel(); if(!s)return; s.offDays=[...(s.offDays||[]),'']; Store.saveSigns(); renderSignEditor(); }
+  function scRemoveOff(i){ const s=scSel(); if(!s)return; s.offDays=(s.offDays||[]).filter((o,idx)=>idx!==i); Store.saveSigns(); renderSignEditor(); }
+  function scToggleWeekend(){ const s=scSel(); if(!s)return; s.skipWeekend=!(s.skipWeekend!==false); Store.saveSigns(); renderSignEditor(); }
+  function scGenDays(){
+    const s=scSel(); if(!s)return;
+    const start=s.dayDateISO; const total=parseInt(s.totalDays)||0;
+    if(!start){ alert('Bitte zuerst ein Startdatum (Tag 1) wählen.'); return; }
+    if(total<1){ alert('Bitte „Tage ges." (Anzahl Drehtage) angeben.'); return; }
+    const skipW=s.skipWeekend!==false; const off=new Set((s.offDays||[]).filter(Boolean));
+    const days=[]; const d=new Date(start+'T00:00:00'); let guard=0;
+    while(days.length<total && guard<3000){ guard++;
+      const dow=d.getDay(); const iso=isoOf(d); const weekend=(dow===0||dow===6);
+      if(!(skipW&&weekend) && !off.has(iso)) days.push(iso);
+      d.setDate(d.getDate()+1);
+    }
+    const base={kind:'daydivider',cat:s.cat,orient:s.orient||'P',title:s.title||'Drehtag',note:s.note||'',totalDays:String(total),skipWeekend:skipW,offDays:[...off]};
+    const made=days.map((iso,i)=>({...base,id:uid('s'),dayNum:String(i+1),dayDateISO:iso}));
+    DB.signs=DB.signs.filter(x=>x.kind!=='daydivider').concat(made);
+    SC.selectedId=made[0]?made[0].id:SC.selectedId;
+    Store.saveSigns(); renderSchilder();
+  }
 
   function scPrint(scope){ const sh=$('printSheet'); sh.style.padding='0';
     const list = scope==='all'? DB.signs : (scSel()?[scSel()]:[]);
-    sh.innerHTML=list.map(s=>{ const k=KINDS[s.kind]||KINDS.wayfind; const or=s.orient||k.orient; const d=dims(or);
-      return `<div style="width:${d.w}px;height:${d.h}px;overflow:hidden;break-after:page;page:${or==='L'?'p_land':'p_portrait'};">${schildHTML(enrichSign(s,DB.signStyle))}</div>`; }).join('');
-    setTimeout(()=>window.print(),120);
+    let html='';
+    list.forEach(s=>{ const or=s.orient||(KINDS[s.kind]||KINDS.wayfind).orient; const d=dims(or);
+      signPages(s,DB.signStyle).forEach(pg=>{ html+=`<div style="width:${d.w}px;height:${d.h}px;overflow:hidden;break-after:page;page:${or==='L'?'p_land':'p_portrait'};">${schildHTML(pg)}</div>`; });
+    });
+    sh.innerHTML=html; setTimeout(()=>window.print(),120);
   }
 
   function wireSchilder(){
     const view=$('viewSchilder');
-    const onInput=(e)=>{ const el=e.target.closest('[data-f],[data-row]'); if(!el)return;
+    const onInput=(e)=>{ const el=e.target.closest('[data-f],[data-row],[data-off]'); if(!el)return;
+      if(el.hasAttribute('data-off')){ scUpdateOff(parseInt(el.getAttribute('data-off')),el.value); return; }
       if(el.hasAttribute('data-row')){ scUpdateRow(parseInt(el.getAttribute('data-row')),el.getAttribute('data-cell'),el.value); renderSignPreview(); return; }
       const f=el.getAttribute('data-f');
-      if(f==='kind'){ scChangeKind(el.value); SC.selectedId=SC.selectedId; renderSchilder(); return; }
+      if(f==='kind'){ scChangeKind(el.value); renderSchilder(); return; }
       if(f==='cat'){ scUpdate('cat',el.value); renderSignList(); renderSignPreview(); return; }
+      if(f==='dayDateISO'){ scUpdate('dayDateISO',el.value); renderSignEditor(); renderSignPreview(); return; }
       scUpdate(f,el.value); if(f==='title') renderSignList(); renderSignPreview();
     };
     view.addEventListener('input',onInput); view.addEventListener('change',onInput);
@@ -632,6 +756,10 @@
       if(act==='arrow'){ scUpdate('arrow',a.getAttribute('data-dir')); renderSignEditor(); renderSignPreview(); return; }
       if(act==='addRow') return scAddRow();
       if(act==='removeRow') return scRemoveRow(parseInt(a.getAttribute('data-row')));
+      if(act==='toggleWeekend') return scToggleWeekend();
+      if(act==='addOff') return scAddOff();
+      if(act==='removeOff') return scRemoveOff(parseInt(a.getAttribute('data-row')));
+      if(act==='genDays') return scGenDays();
       if(act==='styleA'){ DB.signStyle='A'; Store.saveStyle(); renderSignToolbar(); renderSignPreview(); return; }
       if(act==='styleB'){ DB.signStyle='B'; Store.saveStyle(); renderSignToolbar(); renderSignPreview(); return; }
       if(act==='compare'){ SC.compare=!SC.compare; renderSignToolbar(); renderSignPreview(); return; }
@@ -649,7 +777,8 @@
     if(t==='ausweise') renderAuPreview(); else renderSchilder();
   }
 
-  function init(){
+  let built=false;
+  function buildApp(){
     Store.load();
     $('roleList').innerHTML=ROLES.map(r=>`<option value="${esc(r)}"></option>`).join('');
     $('filmTitle').value=DB.filmTitle;
@@ -669,7 +798,37 @@
     Cloud.pull(true);   // adopt the shared state (or seed it if empty)
     Cloud.start();      // poll for changes from other devices
   }
-  document.addEventListener('DOMContentLoaded',init);
+
+  // ---- password gate ----
+  function gateMsg(t,c){ const el=$('gateMsg'); if(el){ el.textContent=t||''; el.style.color=c||'#e0a04a'; } }
+  async function verifyPassword(){
+    let r;
+    try{ r=await fetch(`${SUPA_URL}/crew_state?id=eq.main&select=data`,{headers:SUPA_H}); }
+    catch(e){ return 'offline'; }
+    if(!r.ok) return 'offline';
+    let rows; try{ rows=await r.json(); }catch(e){ return 'offline'; }
+    const row=rows&&rows[0];
+    if(!row||!row.data||!row.data.enc) return 'ok';     // empty or legacy plaintext -> first password wins
+    try{ await Crypto.decrypt(row.data.enc); return 'ok'; }catch(e){ return 'wrongpw'; }
+  }
+  async function unlock(pw){
+    if(!pw){ gateMsg('Bitte Passwort eingeben.'); return; }
+    gateMsg('Entsperre …','#8a8d94');
+    try{ await Crypto.derive(pw); }catch(e){ gateMsg('Verschlüsselung nicht verfügbar (HTTPS nötig).'); return; }
+    const res=await verifyPassword();
+    if(res==='wrongpw'){ gateMsg('Falsches Passwort.'); return; }
+    if(res==='offline') gateMsg('Offline – arbeite mit lokalen Daten.','#e0a04a');
+    try{ sessionStorage.setItem('xy_pw', pw); }catch(e){}
+    $('gate').style.display='none';
+    $('app').style.display='flex';
+    if(!built){ buildApp(); built=true; }
+  }
+  function setupGate(){
+    $('gateForm').addEventListener('submit',(e)=>{ e.preventDefault(); unlock($('gatePw').value); });
+    let saved=null; try{ saved=sessionStorage.getItem('xy_pw'); }catch(e){}
+    if(saved){ $('gatePw').value=saved; unlock(saved); } else { setTimeout(()=>$('gatePw').focus(),60); }
+  }
+  document.addEventListener('DOMContentLoaded',setupGate);
 })();
 </script>
 </body>

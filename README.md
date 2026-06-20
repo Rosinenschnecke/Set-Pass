@@ -45,6 +45,20 @@ add a person and they appear on that sign instantly. Everything is auto-saved.
 - **Printing** — „Alle drucken“ lays every card at true size on A4 (each card kept
   whole, never split across a page break), and each row has its own „Drucken“
   button to print a single pass.
+- **Light/dark card design** — toggle "Design: Hell/Dunkel"; the light variant uses
+  a pure-white background to save toner.
+- **Set-Schilder** — light style (Stil B) is pure white; long lists (Crew-Liste,
+  Regeln, Drehplan) auto-paginate across several A4 pages on print.
+- **Real date pickers** — the Drehtag uses a date input and derives the weekday
+  automatically. From the first day you can **generate all shooting days**,
+  skipping weekends and configurable off-days.
+
+## Password & privacy
+
+The app is gated by a project password. The full state is **encrypted in the
+browser** (AES-GCM, key derived from the password via PBKDF2) before being stored
+in Supabase, so the cloud data is unreadable without the password. The first
+password entered becomes the project password; enter it once per session.
 - **Auto-save** to `localStorage` (migrates older saved data), with the film
   title persisted too.
 
