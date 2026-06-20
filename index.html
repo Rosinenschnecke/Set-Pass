@@ -94,6 +94,7 @@
       </div>
     </div>
     <div class="tb-right" style="display:flex;align-items:center;gap:16px;">
+      <span id="cloudStatus" style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6c6e74;text-transform:uppercase;white-space:nowrap;">Cloud · …</span>
       <label style="display:flex;align-items:center;gap:9px;">
         <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;">Filmtitel</span>
         <input id="filmTitle" style="width:210px;background:#1d1f24;border:1px solid #34373e;border-radius:7px;padding:8px 11px;color:#f4f3ef;font:500 13px 'IBM Plex Mono',monospace;outline:none;">
@@ -239,6 +240,52 @@
     {id:uid('s'),kind:'rules',cat:'crew',orient:'P',title:'Set-Regeln',subtitle:'Damit alle gerne und sicher arbeiten.',rows:[{a:'Bei „Ruhe bitte" ab sofort nur noch flüstern – bis „Danke".'},{a:'Crew-Ausweis immer sichtbar tragen.'},{a:'Handys lautlos. Kein Filmen oder Fotografieren am Set.'},{a:'Auf Kabel & Technik achten – nichts ohne Absprache bewegen.'},{a:'Eigenen Müll mitnehmen, Set sauber halten.'},{a:'Respektvoll, pünktlich, hilfsbereit – wir sind ein Team.'}]},
   ]; }
 
+  // local cache writes (no cloud trigger)
+  const LS = {
+    people(){ try{ localStorage.setItem(K.people, JSON.stringify(DB.people)); }catch(e){} },
+    signs(){ try{ localStorage.setItem(K.signs, JSON.stringify(DB.signs)); }catch(e){} },
+    film(){ try{ localStorage.setItem(K.film, DB.filmTitle); }catch(e){} },
+    style(){ try{ localStorage.setItem(K.style, DB.signStyle); }catch(e){} },
+    all(){ this.people(); this.signs(); this.film(); this.style(); },
+  };
+
+  // ---- Supabase cloud sync (global database) ----
+  const SUPA_URL = 'https://xrifwyfbxftzxtjhhikp.supabase.co/rest/v1';
+  const SUPA_KEY = 'sb_publishable_BJM7hKSfpCjvzuyXQPa_wQ_fQWUXd0j';
+  const SUPA_H = { 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY, 'Content-Type':'application/json' };
+  const Cloud = {
+    enabled:true, lastEdit:0, lastSeen:0, busy:false, timer:null,
+    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle }; },
+    status(t,c){ const el=$('cloudStatus'); if(el){ el.textContent=t; el.style.color=c||'#6c6e74'; } },
+    schedule(){ this.lastEdit=Date.now(); if(!this.enabled) return; clearTimeout(this.timer); this.timer=setTimeout(()=>this.push(),800); },
+    async push(){
+      if(!this.enabled) return; this.busy=true; this.status('Cloud · speichern…','#8a8d94');
+      try{
+        const updated_at=new Date().toISOString();
+        const r=await fetch(`${SUPA_URL}/crew_state?on_conflict=id`,{method:'POST',headers:{...SUPA_H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([{id:'main',data:this.snapshot(),updated_at}])});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        this.lastSeen=Date.parse(updated_at)||this.lastSeen; this.status('Cloud · synchron','#6ee7b7');
+      }catch(e){ this.status('Cloud · offline (lokal gesichert)','#e0a04a'); }
+      this.busy=false;
+    },
+    async pull(initial){
+      if(!this.enabled) return;
+      try{
+        const r=await fetch(`${SUPA_URL}/crew_state?id=eq.main&select=data,updated_at`,{headers:SUPA_H});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const rows=await r.json(); const row=rows&&rows[0];
+        const hasRemote = row && row.data && (Array.isArray(row.data.people)||Array.isArray(row.data.signs));
+        if(!hasRemote){ await this.push(); return; }                  // remote empty -> seed it from local
+        const ru=Date.parse(row.updated_at)||0;
+        if(initial){ applySnapshot(row.data); this.lastSeen=ru; renderActive(); this.status('Cloud · synchron','#6ee7b7'); return; }
+        if(ru>this.lastSeen && (Date.now()-this.lastEdit>5000)){      // newer remote & not mid-edit
+          applySnapshot(row.data); this.lastSeen=ru; renderActive(); this.status('Cloud · aktualisiert','#6ee7b7');
+        }
+      }catch(e){ this.status('Cloud · offline (lokal)','#e0a04a'); }
+    },
+    start(){ if(!this.enabled) return; setInterval(()=>{ if(!this.busy) this.pull(false); }, 12000); },
+  };
+
   const Store = {
     load(){
       let p=null,s=null;
@@ -249,11 +296,29 @@
       DB.filmTitle = (()=>{ try{ return localStorage.getItem(K.film)||FILM_DEFAULT; }catch(e){ return FILM_DEFAULT; } })();
       DB.signStyle = (()=>{ try{ return localStorage.getItem(K.style)||'A'; }catch(e){ return 'A'; } })();
     },
-    savePeople(){ try{ localStorage.setItem(K.people, JSON.stringify(DB.people)); }catch(e){} },
-    saveSigns(){ try{ localStorage.setItem(K.signs, JSON.stringify(DB.signs)); }catch(e){} },
-    saveFilm(){ try{ localStorage.setItem(K.film, DB.filmTitle); }catch(e){} },
-    saveStyle(){ try{ localStorage.setItem(K.style, DB.signStyle); }catch(e){} },
+    savePeople(){ LS.people(); Cloud.schedule(); },
+    saveSigns(){ LS.signs(); Cloud.schedule(); },
+    saveFilm(){ LS.film(); Cloud.schedule(); },
+    saveStyle(){ LS.style(); Cloud.schedule(); },
   };
+
+  // Replace whole DB from a remote snapshot, write-through to the local cache.
+  function applySnapshot(data){
+    if(!data||typeof data!=='object') return;
+    if(Array.isArray(data.people)) DB.people=data.people.map(normPerson);
+    if(Array.isArray(data.signs)) DB.signs=data.signs;
+    if(typeof data.filmTitle==='string') DB.filmTitle=data.filmTitle;
+    if(data.signStyle==='A'||data.signStyle==='B') DB.signStyle=data.signStyle;
+    LS.all();
+  }
+  // Re-render the active view after a remote change (without clobbering active typing).
+  function renderActive(){
+    if(!pById(AU.selectedId)) AU.selectedId=DB.people[0]?DB.people[0].id:null;
+    if(!sById(SC.selectedId)) SC.selectedId=DB.signs[0]?DB.signs[0].id:null;
+    const ft=$('filmTitle'); if(document.activeElement!==ft) ft.value=DB.filmTitle;
+    renderPeople();
+    if(activeTab==='ausweise') renderAuPreview(); else renderSchilder();
+  }
 
   /* ===================== AUSWEIS card ===================== */
   function nameSize(name){ const n=(name||'').trim().length; if(n<=14)return 56; if(n<=18)return 48; if(n<=23)return 40; if(n<=28)return 33; return 27; }
@@ -599,6 +664,10 @@
     wirePeople(); wireSchilder();
     renderPeople(); renderAuPreview();
     switchTab('ausweise');
+
+    Cloud.status('Cloud · verbinde…','#8a8d94');
+    Cloud.pull(true);   // adopt the shared state (or seed it if empty)
+    Cloud.start();      // poll for changes from other devices
   }
   document.addEventListener('DOMContentLoaded',init);
 })();

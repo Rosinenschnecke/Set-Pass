@@ -19,10 +19,12 @@ A single people store is the source of truth. The Ausweise tab edits it; the
 Set-Schilder **„Crew am Set"** name list is generated **automatically** from it —
 add a person and they appear on that sign instantly. Everything is auto-saved.
 
-> **Storage note:** data is stored in the browser (`localStorage`) behind a small
-> storage layer. That means it persists per device/browser but is **not** shared
-> across devices yet. A true global/shared database needs a backend (e.g. Supabase
-> or Firebase) — the storage layer is structured so that can be dropped in.
+> **Storage:** the whole state (people + signs + film title) is synced to a
+> **Supabase** table (`crew_state`, single `main` row holding a JSON snapshot),
+> so it is shared **across devices**. `localStorage` is kept as an offline cache,
+> and changes are pulled periodically (last-write-wins). The publishable/anon key
+> is browser-safe and committed by design; access is governed by the table's RLS
+> policies.
 
 ## Features
 
