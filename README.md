@@ -9,6 +9,10 @@ two tabs that share a single **personnel database**:
    Gefahr, Crew-Liste, Telefonliste, Set-Regeln, Drehplan-Aushang, Drehtag-Trenner,
    Fortschritt) in two styles (dark/light), portrait/landscape, with compare and
    full-page printing.
+3. **Drehplan** — a live control interface (tick off scenes, log shot minutes,
+   step day/team counters) plus a fullscreen **motivational board** (Statistik-Board,
+   1920×1080) for the big screen in the base. Both read the same board data, which
+   is part of the shared, cloud-synced database, so updates appear live.
 
 Both tabs implement the Claude Design prototypes
 (`design/Ausweis-Generator.dc.html`, `design/Set-Schilder.dc.html` + `Schild.dc.html`).
