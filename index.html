@@ -289,7 +289,7 @@
   };
 
   const FILM_DEFAULT = 'The Massacre of Love';
-  const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', scenes:null };
+  const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null };
   const ACC = 'oklch(0.72 0.15 155)'; // board accent green
   const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A', auStyle: 'dark', board: {...BOARD_DEFAULTS} };
   const num = (v)=>{ const n=parseInt(v,10); return isNaN(n)?0:n; };
@@ -868,7 +868,8 @@
   function bScenes(){ return Array.isArray(DB.board.scenes)?DB.board.scenes:[]; }
   function dpToggle(id){ const t=todayKey(); DB.board.scenes=bScenes().map(s=>s.id===id?{...s,done:!s.done,doneAt:!s.done?t:null}:s); Store.saveBoard(); renderDrehplan(); if(boardOpen) renderBoard(); flashToast(); }
   function dpRename(id,v){ DB.board.scenes=bScenes().map(s=>s.id===id?{...s,title:v}:s); Store.saveBoard(); if(boardOpen) renderBoard(); }
-  function dpRemove(id){ DB.board.scenes=bScenes().filter(s=>s.id!==id).map((s,i)=>({...s,no:i+1})); Store.saveBoard(); renderDrehplan(); if(boardOpen) renderBoard(); flashToast(); }
+  function dpRemove(id){ if(DB.board.current===id) DB.board.current=null; DB.board.scenes=bScenes().filter(s=>s.id!==id).map((s,i)=>({...s,no:i+1})); Store.saveBoard(); renderDrehplan(); if(boardOpen) renderBoard(); flashToast(); }
+  function dpCurrent(id){ DB.board.current = (DB.board.current===id ? null : id); Store.saveBoard(); renderDrehplan(); if(boardOpen) renderBoard(); flashToast(); }
   function dpAdd(){ const sc=bScenes().slice(); const ns={id:'s'+Date.now(),no:sc.length+1,title:'',done:false,doneAt:null}; sc.push(ns); DB.board.scenes=sc; Store.saveBoard(); renderDrehplan(); if(boardOpen) renderBoard(); const inp=$('dpBody').querySelector(`input[data-scene="${ns.id}"]`); if(inp){ inp.focus(); } }
   function dpBump(field,delta,min){ const v=Math.max(min!=null?min:0, num(DB.board[field])+delta); DB.board[field]=String(v); Store.saveBoard(); renderDrehplan(); if(boardOpen) renderBoard(); flashToast(); }
   function dpSetFilter(f){ DP.filter=f; renderDrehplan(); }
@@ -879,12 +880,14 @@
     const today=todayKey(); const todayDone=sc.filter(s=>s.done&&s.doneAt===today).length; const todayPlan=num(DB.board.todayPlan);
     const filt=DP.filter; const shown=sc.filter(s=> filt==='open'?!s.done : filt==='done'?s.done : true);
     const filterBtns=[['all','Alle'],['open','Offen'],['done','Erledigt']].map(([k,l])=>`<div data-dp-act="filter" data-f="${k}" style="cursor:pointer;padding:8px 15px;border-radius:7px;font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:${filt===k?'#0c0d10':'#9a9ca3'};background:${filt===k?ACC:'transparent'};">${l}</div>`).join('');
-    const rows=shown.map(s=>`<div style="display:flex;align-items:center;gap:14px;background:${s.done?'oklch(0.27 0.05 155)':'#1b1d22'};border:1px solid ${s.done?'oklch(0.45 0.09 155)':'#2a2c31'};border-radius:12px;padding:12px 14px;">
+    const cur=DB.board.current;
+    const rows=shown.map(s=>{ const isCur=s.id===cur; return `<div style="display:flex;align-items:center;gap:12px;background:${isCur?'oklch(0.3 0.07 25)':(s.done?'oklch(0.27 0.05 155)':'#1b1d22')};border:1px solid ${isCur?'oklch(0.6 0.21 25)':(s.done?'oklch(0.45 0.09 155)':'#2a2c31')};border-radius:12px;padding:12px 14px;">
         <div data-dp-act="toggle" data-id="${s.id}" style="cursor:pointer;flex:none;width:42px;height:42px;border-radius:10px;border:2px solid ${s.done?ACC:'#3a3d44'};background:${s.done?ACC:'transparent'};display:flex;align-items:center;justify-content:center;color:#0c0d10;font:700 22px 'IBM Plex Mono',monospace;">${s.done?'✓':''}</div>
-        <span style="flex:none;width:34px;font:700 18px 'Saira Condensed',sans-serif;color:#6c6e74;text-align:center;">${s.no}</span>
+        <span style="flex:none;width:30px;font:700 18px 'Saira Condensed',sans-serif;color:#6c6e74;text-align:center;">${s.no}</span>
         <input data-scene="${s.id}" value="${esc(s.title)}" placeholder="Szene benennen…" style="flex:1;min-width:0;background:transparent;border:none;border-bottom:1px solid transparent;padding:6px 2px;color:${s.done?'#cfe8d6':'#f4f3ef'};font:600 16px 'Saira Condensed',sans-serif;letter-spacing:.02em;${s.done?'opacity:.7;':''}">
+        <div data-dp-act="current" data-id="${s.id}" title="Als aktuell gedrehte Szene markieren" style="cursor:pointer;flex:none;height:30px;padding:0 11px;border-radius:8px;display:flex;align-items:center;gap:6px;font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.08em;background:${isCur?'oklch(0.6 0.21 25)':'#26282d'};border:1px solid ${isCur?'oklch(0.6 0.21 25)':'#34373e'};color:${isCur?'#fff':'#9a9ca3'};">${isCur?'● JETZT':'JETZT'}</div>
         <div data-dp-act="remove" data-id="${s.id}" title="Szene entfernen" style="cursor:pointer;flex:none;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#5a5d64;font:400 18px 'IBM Plex Mono',monospace;">✕</div>
-      </div>`).join('') || `<div style="text-align:center;color:#6c6e74;font:500 14px 'IBM Plex Mono',monospace;padding:30px 0;">Keine Szenen in dieser Ansicht.</div>`;
+      </div>`; }).join('') || `<div style="text-align:center;color:#6c6e74;font:500 14px 'IBM Plex Mono',monospace;padding:30px 0;">Keine Szenen in dieser Ansicht.</div>`;
     const matBtns=[['−1',-1,'#26282d','#34373e','#c9cace'],['+1',1,'#26282d','#34373e','#f4f3ef'],['+5',5,'oklch(0.28 0.05 210)','oklch(0.45 0.08 210)','#dff'],['+10',10,'oklch(0.7 0.12 210)','oklch(0.7 0.12 210)','#0c0d10']].map(([l,dl,bg,bd,fg])=>`<div data-dp-act="mat" data-d="${dl}" style="cursor:pointer;min-width:56px;height:52px;padding:0 16px;border-radius:11px;background:${bg};border:1px solid ${bd};display:flex;align-items:center;justify-content:center;font:700 19px 'Saira Condensed',sans-serif;color:${fg};">${l}</div>`).join('');
     const steppers=[['Heute geplant (Szenen)','todayPlan',0],['Aktueller Drehtag','dayNum',0],['Drehtage gesamt','dayTotal',1],['Teilnehmer:innen','participants',0],['Beteiligte Klassen','classes',0],['Crew heute','crewToday',0]].map(([label,field,min])=>`<div style="background:#1b1d22;border:1px solid #2a2c31;border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;"><div style="flex:1;min-width:0;"><div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#9a9ca3;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div><div style="font:700 40px 'Saira Condensed',sans-serif;line-height:.9;margin-top:4px;">${num(DB.board[field])}</div></div><div style="display:flex;gap:7px;flex:none;"><div data-dp-act="step" data-field="${field}" data-d="-1" data-min="${min}" style="cursor:pointer;width:46px;height:46px;border-radius:11px;background:#26282d;border:1px solid #34373e;display:flex;align-items:center;justify-content:center;font:600 26px 'IBM Plex Mono',monospace;color:#c9cace;">−</div><div data-dp-act="step" data-field="${field}" data-d="1" data-min="${min}" style="cursor:pointer;width:46px;height:46px;border-radius:11px;background:${ACC};border:1px solid ${ACC};display:flex;align-items:center;justify-content:center;font:600 26px 'IBM Plex Mono',monospace;color:#0c0d10;">+</div></div></div>`).join('');
     body.innerHTML=`
@@ -909,6 +912,7 @@
     v.addEventListener('click',(e)=>{ const a=e.target.closest('[data-dp-act]'); if(!a) return; const act=a.getAttribute('data-dp-act');
       if(act==='filter') return dpSetFilter(a.getAttribute('data-f'));
       if(act==='toggle') return dpToggle(a.getAttribute('data-id'));
+      if(act==='current') return dpCurrent(a.getAttribute('data-id'));
       if(act==='remove') return dpRemove(a.getAttribute('data-id'));
       if(act==='add') return dpAdd();
       if(act==='mat') return dpBump('minutesShot', parseInt(a.getAttribute('data-d')), 0);
@@ -931,7 +935,12 @@
     const sd=sc.length?sc.filter(s=>s.done).length:0; const st=sc.length?sc.length:num(d.scenesTotal); const pct=st>0?Math.max(0,Math.min(100,Math.round(sd/st*100))):0;
     const hd=sc.filter(s=>s.done&&s.doneAt===today).length; const hp=num(d.todayPlan); const hpct=hp>0?Math.max(0,Math.min(100,Math.round(hd/hp*100))):0;
     const dn=num(d.dayNum), dt=num(d.dayTotal); const remaining=Math.max(hp-hd,0);
-    const prev=boardPrev;
+    const curScene=sc.find(s=>s.id===d.current)||null;
+    const prev=boardPrev; const curChanged = prev && prev.current!==d.current;
+    const banner = `<div ${curChanged?'class="flash"':''} style="flex:none;background:${curScene?'linear-gradient(90deg,oklch(0.3 0.08 25),#1b1d22 72%)':'#1b1d22'};border:1px solid ${curScene?'oklch(0.5 0.14 25)':'#2a2c31'};border-radius:20px;padding:22px 34px;display:flex;align-items:center;gap:26px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:13px;flex:none;"><span style="width:16px;height:16px;border-radius:50%;background:${curScene?'oklch(0.6 0.21 25)':'#3a3d44'};display:block;${curScene?'animation:livedot 1.2s ease-in-out infinite;':''}"></span><span style="font:700 22px 'IBM Plex Mono',monospace;letter-spacing:.22em;color:${curScene?'oklch(0.8 0.16 25)':'#6c6e74'};text-transform:uppercase;">${curScene?'Jetzt im Dreh':'Drehpause'}</span></div>
+        ${curScene?`<div style="display:flex;align-items:baseline;gap:18px;min-width:0;"><span style="font:700 60px 'Saira Condensed',sans-serif;color:#fff;line-height:.85;flex:none;">SZ ${curScene.no}</span><span style="font:700 52px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.85;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(curScene.title||'—')}</span></div>`:`<span style="font:500 20px 'IBM Plex Mono',monospace;color:#8a8d94;">Aktuell wird keine Szene gedreht.</span>`}
+      </div>`;
     const heroStart = prev? prev.pct : pct; const heuteStart = prev? prev.hpct : hpct;
     const pips=Array.from({length:Math.min(Math.max(dt,0),16)},(_,i)=>`<span style="flex:1;min-width:14px;height:14px;border-radius:4px;background:${i<dn?'oklch(0.6 0.18 290)':'#26282d'};transition:background .5s;"></span>`).join('');
     const c=clockParts();
@@ -943,8 +952,9 @@
           <div style="display:flex;align-items:center;gap:18px;"><span style="width:22px;height:22px;background:${ACC};transform:rotate(45deg);display:block;"></span><div><div style="font:700 40px 'Saira Condensed',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#f4f3ef;line-height:1;">Dreh-Status · ${esc(DB.filmTitle)}</div><div style="font:500 15px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:#8a8d94;text-transform:uppercase;margin-top:9px;">XY Pictures · Heinrich-Hertz-Gymnasium</div></div></div>
           <div style="text-align:right;"><div style="display:flex;align-items:center;justify-content:flex-end;gap:13px;"><span style="width:11px;height:11px;border-radius:50%;background:${ACC};display:block;animation:livedot 1.6s ease-in-out infinite;"></span><span style="font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.22em;color:#8a8d94;">LIVE</span><span id="boardTime" style="font:700 64px 'Saira Condensed',sans-serif;color:#f4f3ef;letter-spacing:.02em;line-height:.8;">${c.time}</span></div><div id="boardDate" style="font:500 16px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.04em;margin-top:9px;text-transform:capitalize;">${c.date}</div></div>
         </div>
-        <div style="flex:1;display:flex;flex-direction:column;gap:28px;padding-top:28px;min-height:0;">
-          <div style="height:470px;flex:none;display:flex;gap:28px;">
+        <div style="flex:1;display:flex;flex-direction:column;gap:24px;padding-top:24px;min-height:0;">
+          ${banner}
+          <div style="height:440px;flex:none;display:flex;gap:28px;">
             <div style="flex:1.42;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:44px 48px;display:flex;flex-direction:column;position:relative;overflow:hidden;">
               <div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:13px;"><span style="width:13px;height:13px;background:${ACC};transform:rotate(45deg);display:block;"></span><span style="font:600 20px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Szenen im Kasten</span></div><span style="font:500 16px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a8d94;text-transform:uppercase;">Gesamt ${st} Szenen</span></div>
               <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;"><div style="display:flex;align-items:baseline;gap:4px;"><span style="font:700 200px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.8;letter-spacing:-.01em;">${odo(sd, prev?prev.sd:null)}</span><span style="font:600 80px 'Saira Condensed',sans-serif;color:#6c6e74;line-height:.8;">/${st}</span></div><span style="font:700 116px 'Saira Condensed',sans-serif;color:${ACC};line-height:.78;">${odo(pct, prev?prev.pct:null)}<span style="font-size:52px;color:#8a8d94;">%</span></span></div>
@@ -966,7 +976,7 @@
       const eb=$('boardHeuteBar'); if(eb) eb.style.width=hpct+'%';
       q.forEach(id=>{ const el=$(id); if(el){ void el.offsetHeight; el.style.transform='translateY('+el.getAttribute('data-endy')+')'; } });
     });
-    boardPrev={ pct, hpct, sd, remaining, dn, participants:num(d.participants), classes:num(d.classes), crewToday:num(d.crewToday), minutesShot:num(d.minutesShot) };
+    boardPrev={ pct, hpct, sd, remaining, dn, current:d.current, participants:num(d.participants), classes:num(d.classes), crewToday:num(d.crewToday), minutesShot:num(d.minutesShot) };
   }
 
   /* ===================== tabs + init ===================== */
