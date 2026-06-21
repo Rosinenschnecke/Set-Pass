@@ -85,6 +85,20 @@
     /* preview panes a bit shorter so content above is reachable */
     #auPreviewPane{padding:18px 14px;}
     #dpBody{padding:16px 14px;}
+
+    /* Crew-Ausweise: table -> stacked cards */
+    table.crew{min-width:0;width:100%;}
+    .crew thead{display:none;}
+    .crew, .crew tbody{display:block;width:100%;}
+    .crew tbody tr{display:block;background:#1b1d22;border:1px solid #2a2c31;border-radius:14px;padding:12px 14px;margin:12px;}
+    .crew tbody tr.sel{background:#1c2733;}
+    .crew tbody td{display:block;width:100%;border:none;padding:7px 0;}
+    .crew tbody td::before{content:attr(data-label);display:block;font:600 9px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a8d94;text-transform:uppercase;margin-bottom:5px;}
+    .crew tbody td.cellSort::before{display:none;}
+    .crew tbody td.cellSort{position:absolute;right:14px;margin-top:-2px;width:auto;}
+    .crew tbody tr{position:relative;}
+    .crew .nr{font-size:16px !important;}
+    .crew tbody td .inp,.crew tbody td .sel{font-size:15px;padding:11px 12px;}
   }
   @media (max-width:480px){
     .tab{font-size:10px;letter-spacing:.02em;padding:9px 5px;}
@@ -235,6 +249,9 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const pad = (n) => String(n).padStart(3, '0');
+  // Print synchronously within the click handler — a setTimeout here breaks the
+  // user-gesture requirement on mobile browsers (iOS), so the dialog never opens.
+  function doPrint(){ try{ window.print(); }catch(e){} }
 
   /* ===================== shared data ===================== */
   const DEPTS = {
@@ -504,20 +521,20 @@
       ? `<span class="grip" style="cursor:default;color:#3a3d44;" title="Sortierung aktiv">⠿</span>`
       : `<div class="ord"><span class="grip" draggable="true" title="Ziehen zum Sortieren">⠿</span><span class="arrow"><span class="arr" data-id="${p.id}" data-dir="up">▲</span><span class="arr" data-id="${p.id}" data-dir="down">▼</span></span></div>`;
     return `<tr data-id="${p.id}" class="${p.id===AU.selectedId?'sel':''}">
-      <td>${orderCell}</td>
-      <td><span class="nr" data-id="${p.id}" style="color:${d.color};font:700 14px 'IBM Plex Mono',monospace;">${pad(pIdx(p.id)+1)}</span></td>
-      <td><input class="inp" data-id="${p.id}" data-f="name" value="${esc(p.name)}" placeholder="Name"></td>
-      <td><select class="sel" data-id="${p.id}" data-f="dept">${deptOptions(p.dept)}</select></td>
-      <td><input class="inp" data-id="${p.id}" data-f="role" list="roleList" value="${esc(p.role)}" placeholder="z. B. Kamera / DOP"></td>
-      <td><input class="inp" data-id="${p.id}" data-f="filmRole" value="${esc(p.filmRole)}" placeholder="optional"></td>
-      <td><div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <td data-label="" class="cellSort">${orderCell}</td>
+      <td data-label="Nr."><span class="nr" data-id="${p.id}" style="color:${d.color};font:700 14px 'IBM Plex Mono',monospace;">${pad(pIdx(p.id)+1)}</span></td>
+      <td data-label="Name"><input class="inp" data-id="${p.id}" data-f="name" value="${esc(p.name)}" placeholder="Name"></td>
+      <td data-label="Department"><select class="sel" data-id="${p.id}" data-f="dept">${deptOptions(p.dept)}</select></td>
+      <td data-label="Rolle / Funktion"><input class="inp" data-id="${p.id}" data-f="role" list="roleList" value="${esc(p.role)}" placeholder="z. B. Kamera / DOP"></td>
+      <td data-label="Rolle im Film"><input class="inp" data-id="${p.id}" data-f="filmRole" value="${esc(p.filmRole)}" placeholder="optional"></td>
+      <td data-label="Markierungen"><div style="display:flex;gap:6px;flex-wrap:wrap;">
         <span class="mark" data-id="${p.id}" data-mark="head" style="${markStyle('head',p.head)}">HEAD</span>
         <span class="mark" data-id="${p.id}" data-mark="lehrer" style="${markStyle('lehrer',p.lehrer)}">LEHRER</span>
         <span class="mark" data-id="${p.id}" data-mark="media" style="${markStyle('media',p.media)}">MEDIA</span>
         <span class="mark" data-id="${p.id}" data-mark="legacy" style="${markStyle('legacy',p.legacy)}">LEGACY</span>
         <span class="mark" data-id="${p.id}" data-mark="noimg" title="Darf nicht im Bild zu sehen sein" style="${markStyle('noimg',p.noimg)}">KEIN BILD</span>
       </div></td>
-      <td><div style="display:flex;gap:6px;">
+      <td data-label="Aktionen"><div style="display:flex;gap:6px;flex-wrap:wrap;">
         <span class="act" data-id="${p.id}" data-au-act="preview">Vorschau</span>
         <span class="act" data-id="${p.id}" data-au-act="print">Drucken</span>
         <span class="act" data-id="${p.id}" data-au-act="dup">Dupl.</span>
@@ -569,8 +586,8 @@
   }
 
   function auCardBlock(p,i){ return `<div style="display:inline-block;vertical-align:top;width:85mm;height:54mm;overflow:hidden;border-radius:0;margin:0 5mm 5mm 0;break-inside:avoid;page-break-inside:avoid;"><div style="width:520px;height:328px;transform:scale(0.6178);transform-origin:top left;">${auCardHTML(p,pad(i+1))}</div></div>`; }
-  function auPrintAll(){ const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auDisplay().map(p=>auCardBlock(p,pIdx(p.id))).join(''); setTimeout(()=>window.print(),80); }
-  function auPrintOne(id){ const i=pIdx(id); if(i<0)return; const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auCardBlock(DB.people[i],i); setTimeout(()=>window.print(),80); }
+  function auPrintAll(){ const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auDisplay().map(p=>auCardBlock(p,pIdx(p.id))).join(''); doPrint(); }
+  function auPrintOne(id){ const i=pIdx(id); if(i<0)return; const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auCardBlock(DB.people[i],i); doPrint(); }
 
   /* ===================== SCHILD rendering ===================== */
   function dims(or){ return or==='L'?{w:1123,h:794,bandH:84,heroFont:104}:{w:794,h:1123,bandH:92,heroFont:92}; }
@@ -795,7 +812,7 @@
     list.forEach(s=>{ const or=s.orient||(KINDS[s.kind]||KINDS.wayfind).orient; const d=dims(or);
       signPages(s,DB.signStyle).forEach(pg=>{ html+=`<div style="width:${d.w}px;height:${d.h}px;overflow:hidden;break-after:page;page:${or==='L'?'p_land':'p_portrait'};">${schildHTML(pg)}</div>`; });
     });
-    sh.innerHTML=html; setTimeout(()=>window.print(),120);
+    sh.innerHTML=html; doPrint();
   }
 
   function wireSchilder(){
@@ -836,6 +853,18 @@
   const DP = { filter:'all' };
   let boardOpen=false, boardTick=null, boardPrev=null, toastT=null;
   function flashToast(){ const el=$('dpToast'); if(!el) return; el.style.display='flex'; el.style.animation='none'; void el.offsetWidth; el.style.animation='savedpop 1.4s ease forwards'; clearTimeout(toastT); toastT=setTimeout(()=>{ el.style.display='none'; },1400); }
+  // odometer / split-flap roll: number scrolls up (increase) or down (decrease)
+  let odoSeq=0, odoQueue=[];
+  function odo(val, prev){
+    val=String(val);
+    const changed = prev!=null && String(prev)!==val;
+    if(!changed) return `<span style="display:inline-block;vertical-align:bottom;height:1em;line-height:1;overflow:hidden;">${esc(val)}</span>`;
+    const up = num(val) >= num(prev);
+    const top = up?String(prev):val, bottom = up?val:String(prev);
+    const id='odo'+(++odoSeq); const startY = up?'0':'-1em', endY = up?'-1em':'0';
+    odoQueue.push(id);
+    return `<span style="display:inline-block;vertical-align:bottom;height:1em;line-height:1;overflow:hidden;"><span id="${id}" data-endy="${endY}" style="display:block;transform:translateY(${startY});transition:transform .8s cubic-bezier(.2,.7,.2,1);"><span style="display:block;height:1em;line-height:1;">${esc(top)}</span><span style="display:block;height:1em;line-height:1;">${esc(bottom)}</span></span></span>`;
+  }
   function bScenes(){ return Array.isArray(DB.board.scenes)?DB.board.scenes:[]; }
   function dpToggle(id){ const t=todayKey(); DB.board.scenes=bScenes().map(s=>s.id===id?{...s,done:!s.done,doneAt:!s.done?t:null}:s); Store.saveBoard(); renderDrehplan(); if(boardOpen) renderBoard(); flashToast(); }
   function dpRename(id,v){ DB.board.scenes=bScenes().map(s=>s.id===id?{...s,title:v}:s); Store.saveBoard(); if(boardOpen) renderBoard(); }
@@ -897,15 +926,16 @@
   function closeBoard(){ boardOpen=false; $('boardView').style.display='none'; clearInterval(boardTick); boardTick=null; try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){} }
 
   function renderBoard(){
+    odoQueue=[];
     const d=DB.board; const sc=bScenes(); const today=todayKey();
     const sd=sc.length?sc.filter(s=>s.done).length:0; const st=sc.length?sc.length:num(d.scenesTotal); const pct=st>0?Math.max(0,Math.min(100,Math.round(sd/st*100))):0;
     const hd=sc.filter(s=>s.done&&s.doneAt===today).length; const hp=num(d.todayPlan); const hpct=hp>0?Math.max(0,Math.min(100,Math.round(hd/hp*100))):0;
     const dn=num(d.dayNum), dt=num(d.dayTotal); const remaining=Math.max(hp-hd,0);
-    const prev=boardPrev; const pop=(k,v)=> (prev && prev[k]!==v) ? 'pop' : '';
+    const prev=boardPrev;
     const heroStart = prev? prev.pct : pct; const heuteStart = prev? prev.hpct : hpct;
     const pips=Array.from({length:Math.min(Math.max(dt,0),16)},(_,i)=>`<span style="flex:1;min-width:14px;height:14px;border-radius:4px;background:${i<dn?'oklch(0.6 0.18 290)':'#26282d'};transition:background .5s;"></span>`).join('');
     const c=clockParts();
-    const tiles=[['participants','oklch(0.62 0.13 245)','Teilnehmer:innen',num(d.participants),'','Schüler:innen & Betreuung'],['classes','oklch(0.6 0.18 290)','Beteiligte Klassen',num(d.classes),'','jahrgangsübergreifend'],['crewToday','oklch(0.72 0.15 155)','Crew heute',num(d.crewToday),'','am Set & Base'],['minutesShot','oklch(0.7 0.12 210)','Material',num(d.minutesShot),'Min','gedreht gesamt']].map(([key,acc,eye,val,unit,sub])=>`<div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:28px 30px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="display:flex;align-items:center;gap:11px;"><span style="width:10px;height:10px;background:${acc};transform:rotate(45deg);display:block;flex:none;"></span><span style="font:600 15px 'IBM Plex Mono',monospace;letter-spacing:.15em;color:#9a9ca3;text-transform:uppercase;">${eye}</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:8px;"><span class="${pop(key,val)}" style="font:700 88px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.76;">${val}</span>${unit?`<span style="font:600 22px 'Saira Condensed',sans-serif;color:${acc};letter-spacing:.04em;text-transform:uppercase;">${unit}</span>`:''}</div><div style="font:500 14px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:12px;letter-spacing:.02em;line-height:1.35;">${sub}</div></div>`).join('');
+    const tiles=[['participants','oklch(0.62 0.13 245)','Teilnehmer:innen',num(d.participants),'','Schüler:innen & Betreuung'],['classes','oklch(0.6 0.18 290)','Beteiligte Klassen',num(d.classes),'','jahrgangsübergreifend'],['crewToday','oklch(0.72 0.15 155)','Crew heute',num(d.crewToday),'','am Set & Base'],['minutesShot','oklch(0.7 0.12 210)','Material',num(d.minutesShot),'Min','gedreht gesamt']].map(([key,acc,eye,val,unit,sub])=>`<div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:28px 30px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="display:flex;align-items:center;gap:11px;"><span style="width:10px;height:10px;background:${acc};transform:rotate(45deg);display:block;flex:none;"></span><span style="font:600 15px 'IBM Plex Mono',monospace;letter-spacing:.15em;color:#9a9ca3;text-transform:uppercase;">${eye}</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:8px;"><span style="font:700 88px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.76;">${odo(val, prev?prev[key]:null)}</span>${unit?`<span style="font:600 22px 'Saira Condensed',sans-serif;color:${acc};letter-spacing:.04em;text-transform:uppercase;">${unit}</span>`:''}</div><div style="font:500 14px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:12px;letter-spacing:.02em;line-height:1.35;">${sub}</div></div>`).join('');
     $('boardStage').innerHTML=`
       <div style="position:absolute;top:-340px;left:-220px;width:1100px;height:900px;background:radial-gradient(circle,${ACC} 0%,transparent 64%);opacity:.5;pointer-events:none;"></div>
       <div style="position:relative;height:100%;padding:52px;display:flex;flex-direction:column;">
@@ -917,20 +947,25 @@
           <div style="height:470px;flex:none;display:flex;gap:28px;">
             <div style="flex:1.42;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:44px 48px;display:flex;flex-direction:column;position:relative;overflow:hidden;">
               <div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:13px;"><span style="width:13px;height:13px;background:${ACC};transform:rotate(45deg);display:block;"></span><span style="font:600 20px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Szenen im Kasten</span></div><span style="font:500 16px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a8d94;text-transform:uppercase;">Gesamt ${st} Szenen</span></div>
-              <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;"><div style="display:flex;align-items:baseline;gap:4px;"><span class="${pop('sd',sd)}" style="font:700 200px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.8;letter-spacing:-.01em;">${sd}</span><span style="font:600 80px 'Saira Condensed',sans-serif;color:#6c6e74;line-height:.8;">/${st}</span></div><span class="${pop('pct',pct)}" style="font:700 116px 'Saira Condensed',sans-serif;color:${ACC};line-height:.78;">${pct}<span style="font-size:52px;color:#8a8d94;">%</span></span></div>
+              <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;"><div style="display:flex;align-items:baseline;gap:4px;"><span style="font:700 200px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.8;letter-spacing:-.01em;">${odo(sd, prev?prev.sd:null)}</span><span style="font:600 80px 'Saira Condensed',sans-serif;color:#6c6e74;line-height:.8;">/${st}</span></div><span style="font:700 116px 'Saira Condensed',sans-serif;color:${ACC};line-height:.78;">${odo(pct, prev?prev.pct:null)}<span style="font-size:52px;color:#8a8d94;">%</span></span></div>
               <div style="margin-top:30px;height:34px;background:#26282d;border-radius:9px;overflow:hidden;"><div id="boardHeroBar" style="height:100%;width:${heroStart}%;background:${ACC};border-radius:9px;transition:width .8s cubic-bezier(.2,.7,.2,1);position:relative;overflow:hidden;"><div style="position:absolute;top:0;bottom:0;left:0;width:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);animation:barshine 2.6s ease-in-out infinite;"></div></div></div>
               <div style="margin-top:22px;display:flex;align-items:center;gap:12px;"><span style="width:9px;height:9px;background:${ACC};transform:rotate(45deg);display:block;"></span><span style="font:600 27px 'Saira Condensed',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#f4f3ef;">${esc(encourage(pct))}</span></div>
             </div>
             <div style="flex:1;display:flex;flex-direction:column;gap:28px;min-width:0;">
-              <div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:30px 34px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;bottom:0;width:6px;background:oklch(0.8 0.16 78);"></div><div style="display:flex;align-items:center;gap:12px;"><span style="width:11px;height:11px;background:oklch(0.8 0.16 78);transform:rotate(45deg);display:block;"></span><span style="font:600 17px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Heute noch</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:16px;"><span class="${pop('remaining',remaining)}" style="font:700 110px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.74;">${remaining}</span><div><div style="font:600 27px 'Saira Condensed',sans-serif;color:oklch(0.84 0.13 78);text-transform:uppercase;letter-spacing:.03em;line-height:1;">offene Szenen</div><div style="font:500 15px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:7px;">${hd} von ${hp} heute geschafft</div></div></div><div style="margin-top:18px;height:10px;background:#26282d;border-radius:5px;overflow:hidden;"><div id="boardHeuteBar" style="height:100%;width:${heuteStart}%;background:oklch(0.8 0.16 78);border-radius:5px;transition:width .8s cubic-bezier(.2,.7,.2,1);"></div></div></div>
-              <div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:30px 34px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;bottom:0;width:6px;background:oklch(0.6 0.18 290);"></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:12px;"><span style="width:11px;height:11px;background:oklch(0.6 0.18 290);transform:rotate(45deg);display:block;"></span><span style="font:600 17px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Drehtag</span></div><span style="font:500 15px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.04em;">noch ${Math.max(dt-dn,0)} Drehtage</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:4px;"><span class="${pop('dn',dn)}" style="font:700 110px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.74;">${dn}</span><span style="font:600 52px 'Saira Condensed',sans-serif;color:#6c6e74;line-height:.8;">/${dt}</span></div><div style="margin-top:20px;display:flex;gap:7px;flex-wrap:wrap;">${pips}</div></div>
+              <div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:30px 34px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;bottom:0;width:6px;background:oklch(0.8 0.16 78);"></div><div style="display:flex;align-items:center;gap:12px;"><span style="width:11px;height:11px;background:oklch(0.8 0.16 78);transform:rotate(45deg);display:block;"></span><span style="font:600 17px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Heute noch</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:16px;"><span style="font:700 110px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.74;">${odo(remaining, prev?prev.remaining:null)}</span><div><div style="font:600 27px 'Saira Condensed',sans-serif;color:oklch(0.84 0.13 78);text-transform:uppercase;letter-spacing:.03em;line-height:1;">offene Szenen</div><div style="font:500 15px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:7px;">${hd} von ${hp} heute geschafft</div></div></div><div style="margin-top:18px;height:10px;background:#26282d;border-radius:5px;overflow:hidden;"><div id="boardHeuteBar" style="height:100%;width:${heuteStart}%;background:oklch(0.8 0.16 78);border-radius:5px;transition:width .8s cubic-bezier(.2,.7,.2,1);"></div></div></div>
+              <div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:30px 34px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;bottom:0;width:6px;background:oklch(0.6 0.18 290);"></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:12px;"><span style="width:11px;height:11px;background:oklch(0.6 0.18 290);transform:rotate(45deg);display:block;"></span><span style="font:600 17px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Drehtag</span></div><span style="font:500 15px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.04em;">noch ${Math.max(dt-dn,0)} Drehtage</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:4px;"><span style="font:700 110px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.74;">${odo(dn, prev?prev.dn:null)}</span><span style="font:600 52px 'Saira Condensed',sans-serif;color:#6c6e74;line-height:.8;">/${dt}</span></div><div style="margin-top:20px;display:flex;gap:7px;flex-wrap:wrap;">${pips}</div></div>
             </div>
           </div>
           <div style="flex:1;display:flex;gap:28px;min-height:0;">${tiles}</div>
         </div>
       </div>`;
-    // animate progress bars from previous to current value
-    requestAnimationFrame(()=>{ const hb=$('boardHeroBar'); if(hb) hb.style.width=pct+'%'; const eb=$('boardHeuteBar'); if(eb) eb.style.width=hpct+'%'; });
+    // animate progress bars + roll the changed numbers
+    const q=odoQueue; odoQueue=[];
+    requestAnimationFrame(()=>{
+      const hb=$('boardHeroBar'); if(hb) hb.style.width=pct+'%';
+      const eb=$('boardHeuteBar'); if(eb) eb.style.width=hpct+'%';
+      q.forEach(id=>{ const el=$(id); if(el){ void el.offsetHeight; el.style.transform='translateY('+el.getAttribute('data-endy')+')'; } });
+    });
     boardPrev={ pct, hpct, sd, remaining, dn, participants:num(d.participants), classes:num(d.classes), crewToday:num(d.crewToday), minutesShot:num(d.minutesShot) };
   }
 
