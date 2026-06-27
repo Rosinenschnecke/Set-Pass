@@ -263,6 +263,9 @@
     CA:{name:'Cast',       color:'oklch(0.58 0.19 290)',band:'#f4f3ef', role:'oklch(0.8 0.12 290)'},
   };
   const dept = (c) => DEPTS[c] || DEPTS.TE;
+  const GUEST = { name:'Gast', color:'#6c6e74', band:'#f4f3ef', role:'#b9bbc0' };
+  // Uppercase that keeps the German ß (CSS text-transform:uppercase turns it into "SS").
+  const nameUpper = (s)=> esc([...String(s==null?'':s)].map(c=>c==='ß'?'ß':c.toUpperCase()).join(''));
   const ROLES = ['Regie','Regieassistenz','Aufnahmeleitung','Produktionsleitung','Produktionsassistenz','Drehbuch','Script / Continuity','Kamera / DOP','Kameraassistenz / Focus Puller','2nd AC / Clapper Loader','DIT','Oberbeleuchter / Gaffer','Beleuchter / Best Boy','Grip / Bühne','Ton / Tonmeister','Angel / Boom Operator','Szenenbild','Ausstattung / Set Decoration','Requisite / Props','Kostümbild','Garderobe','Maske / Make-up','Schnitt / Editor','VFX','Colorist','Sounddesign','Musik / Komponist','Standfotografie','Making-of','Catering','Transport / Fahrer','Darsteller/in','Komparse / Statist','Hospitanz'];
 
   const KINDS = {
@@ -307,7 +310,7 @@
   const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1' };
   const uid = (p) => p + Math.random().toString(36).slice(2, 9);
 
-  function normPerson(p){ return { id:p.id||uid('p'), name:p.name||'', dept:DEPTS[p.dept]?p.dept:'TE', role:p.role||'', filmRole:p.filmRole||'', head:!!p.head, media:!!p.media, legacy:!!p.legacy, lehrer:!!p.lehrer, noimg:!!p.noimg }; }
+  function normPerson(p){ return { id:p.id||uid('p'), name:p.name||'', dept:DEPTS[p.dept]?p.dept:'TE', role:p.role||'', filmRole:p.filmRole||'', head:!!p.head, media:!!p.media, legacy:!!p.legacy, lehrer:!!p.lehrer, noimg:!!p.noimg, guest:!!p.guest }; }
 
   function seedPeople(){ return [
     {id:uid('p'),name:'Lena Vogt',dept:'RG',role:'Regie',filmRole:'',head:true,media:true,legacy:true,lehrer:false},
@@ -456,9 +459,9 @@
   }
 
   /* ===================== AUSWEIS card ===================== */
-  function nameSize(name){ const n=(name||'').trim().length; if(n<=14)return 56; if(n<=18)return 48; if(n<=23)return 40; if(n<=28)return 33; return 27; }
+  function nameSize(name){ const n=(name||'').trim().length; if(n<=12)return 56; if(n<=16)return 48; if(n<=20)return 40; if(n<=24)return 34; if(n<=29)return 28; if(n<=36)return 23; return 19; }
   function auCardHTML(p, no){
-    const d=dept(p.dept); const hasFilmRole=!!(p.filmRole&&String(p.filmRole).trim());
+    const d=p.guest?GUEST:dept(p.dept); const hasFilmRole=!!(p.filmRole&&String(p.filmRole).trim());
     const badges=[
       p.head?`<span style="display:inline-flex;align-items:center;gap:6px;background:#f4f3ef;border-radius:5px;padding:5px 10px;font:700 11px 'IBM Plex Mono',monospace;color:#15161a;letter-spacing:.08em;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;"></span>HEAD</span>`:'',
       p.lehrer?`<span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.12 300);border-radius:5px;padding:5px 10px;color:#211433;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M12 3 1 9l11 6 9-4.9V17h2V9L12 3zM5 13.2v3.3c0 1.5 3.1 3 7 3s7-1.5 7-3v-3.3l-7 3.8-7-3.8z"/></svg><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">LEHRER</span></span>`:'',
@@ -484,10 +487,10 @@
       <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
         <div style="min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:${filmCol};text-transform:uppercase;">${esc(DB.filmTitle)}</span></div>
-          <div style="font:700 ${nameSize(p.name)}px 'Saira Condensed',sans-serif;color:${nameCol};text-transform:uppercase;line-height:.9;letter-spacing:.005em;overflow-wrap:anywhere;${nameShadow}">${esc(p.name)}</div>
+          <div style="font:700 ${nameSize(p.name)}px 'Saira Condensed',sans-serif;color:${nameCol};line-height:.86;letter-spacing:.005em;overflow-wrap:anywhere;word-break:break-word;${nameShadow}">${nameUpper(p.name)}</div>
           <div style="width:58px;height:4px;background:${d.color};margin-top:11px;"></div>
           <div style="font:500 15px 'IBM Plex Mono',monospace;color:${roleCol};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
-          ${hasFilmRole?`<div style="font:500 9.5px 'IBM Plex Mono',monospace;color:${frLabel};letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div><div style="font:600 23px 'Saira Condensed',sans-serif;color:${roleCol};margin-top:2px;text-transform:uppercase;letter-spacing:.02em;">${esc(p.filmRole)}</div>`:''}
+          ${hasFilmRole?`<div style="font:500 9.5px 'IBM Plex Mono',monospace;color:${frLabel};letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div><div style="font:600 23px 'Saira Condensed',sans-serif;color:${roleCol};margin-top:2px;letter-spacing:.02em;overflow-wrap:anywhere;">${nameUpper(p.filmRole)}</div>`:''}
         </div>
         ${emblem}
       </div>
@@ -511,6 +514,7 @@
     if(type==='legacy') return b+"border:1px solid #d4af37;background:linear-gradient(135deg,#f6dd8b,#d4af37);color:#3a2c05;";
     if(type==='lehrer') return b+"border:1px solid oklch(0.8 0.12 300);background:oklch(0.8 0.12 300);color:#211433;";
     if(type==='noimg') return b+"border:1px solid #e0392b;background:#e0392b;color:#fff;";
+    if(type==='guest') return b+"border:1px solid #6c6e74;background:#6c6e74;color:#fff;";
     return b; }
 
   function auDisplay(){ if(!AU.sortByDept) return DB.people.slice(); const ord=Object.keys(DEPTS);
@@ -522,7 +526,7 @@
       : `<div class="ord"><span class="grip" draggable="true" title="Ziehen zum Sortieren">⠿</span><span class="arrow"><span class="arr" data-id="${p.id}" data-dir="up">▲</span><span class="arr" data-id="${p.id}" data-dir="down">▼</span></span></div>`;
     return `<tr data-id="${p.id}" class="${p.id===AU.selectedId?'sel':''}">
       <td data-label="" class="cellSort">${orderCell}</td>
-      <td data-label="Nr."><span class="nr" data-id="${p.id}" style="color:${d.color};font:700 14px 'IBM Plex Mono',monospace;">${pad(pIdx(p.id)+1)}</span></td>
+      <td data-label="Nr."><span class="nr" data-id="${p.id}" style="color:${p.guest?GUEST.color:d.color};font:700 14px 'IBM Plex Mono',monospace;">${pad(pIdx(p.id)+1)}</span></td>
       <td data-label="Name"><input class="inp" data-id="${p.id}" data-f="name" value="${esc(p.name)}" placeholder="Name"></td>
       <td data-label="Department"><select class="sel" data-id="${p.id}" data-f="dept">${deptOptions(p.dept)}</select></td>
       <td data-label="Rolle / Funktion"><input class="inp" data-id="${p.id}" data-f="role" list="roleList" value="${esc(p.role)}" placeholder="z. B. Kamera / DOP"></td>
@@ -533,6 +537,7 @@
         <span class="mark" data-id="${p.id}" data-mark="media" style="${markStyle('media',p.media)}">MEDIA</span>
         <span class="mark" data-id="${p.id}" data-mark="legacy" style="${markStyle('legacy',p.legacy)}">LEGACY</span>
         <span class="mark" data-id="${p.id}" data-mark="noimg" title="Darf nicht im Bild zu sehen sein" style="${markStyle('noimg',p.noimg)}">KEIN BILD</span>
+        <span class="mark" data-id="${p.id}" data-mark="guest" title="Gäste-Ausweis (grau)" style="${markStyle('guest',p.guest)}">GAST</span>
       </div></td>
       <td data-label="Aktionen"><div style="display:flex;gap:6px;flex-wrap:wrap;">
         <span class="act" data-id="${p.id}" data-au-act="preview">Vorschau</span>
@@ -565,7 +570,7 @@
     tb.addEventListener('input',onField); tb.addEventListener('change',onField);
     tb.addEventListener('focusin',(e)=>{ const el=e.target.closest('[data-id]'); if(el) auSelect(el.getAttribute('data-id')); });
     tb.addEventListener('click',(e)=>{
-      const mark=e.target.closest('.mark'); if(mark){ const id=mark.getAttribute('data-id'),m=mark.getAttribute('data-mark'); const p=pById(id); if(!p)return; p[m]=!p[m]; Store.savePeople(); mark.setAttribute('style',markStyle(m,p[m])); if(id===AU.selectedId)renderAuPreview(); return; }
+      const mark=e.target.closest('.mark'); if(mark){ const id=mark.getAttribute('data-id'),m=mark.getAttribute('data-mark'); const p=pById(id); if(!p)return; p[m]=!p[m]; Store.savePeople(); mark.setAttribute('style',markStyle(m,p[m])); if(m==='guest'){ const nr=auTbody().querySelector(`.nr[data-id="${id}"]`); if(nr) nr.style.color=p.guest?GUEST.color:dept(p.dept).color; } if(id===AU.selectedId)renderAuPreview(); return; }
       const arr=e.target.closest('.arr'); if(arr){ auMoveBy(arr.getAttribute('data-id'),arr.getAttribute('data-dir')==='up'?-1:1); return; }
       const act=e.target.closest('[data-au-act]'); if(act){ const id=act.getAttribute('data-id'),a=act.getAttribute('data-au-act');
         if(a==='preview'){ auSelect(id); $('auPreviewPane').scrollIntoView({behavior:'smooth',block:'nearest'}); }
@@ -614,7 +619,7 @@
     } else if(fam==='list'){
       b.colA=k.cols[0]||''; b.colB=k.cols[1]||''; b.colC=k.cols[2]||''; b.showColC=k.cols.length>2;
       let rows;
-      if(s.kind==='namelist') rows=DB.people.map((p,i)=>({a:p.name||'', b:dept(p.dept).name, c:pad(i+1)}));   // synced from personnel DB
+      if(s.kind==='namelist') rows=DB.people.map((p,i)=>({a:p.name||'', b:(p.guest?GUEST.name:dept(p.dept).name), c:pad(i+1)}));   // synced from personnel DB
       else rows=(s.rows||[]).map(r=>({a:r.a||'',b:r.b||'',c:r.c||''}));
       b.rows=rows.map(r=>({...r,tag:''}));
     } else if(fam==='rules'){
