@@ -462,16 +462,16 @@
   function nameSize(name){ const n=(name||'').trim().length; if(n<=12)return 56; if(n<=16)return 48; if(n<=20)return 40; if(n<=24)return 34; if(n<=29)return 28; if(n<=36)return 23; return 19; }
   function auCardHTML(p, no){
     if(p.guest){
-      const gl=DB.auStyle==='light'; const cardBg=gl?'#ffffff':'#26282d'; const grey='#6c6e74'; const gastCol=gl?'#2f3237':'#f4f3ef';
-      const emblem=gl?'':`<img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:84px;height:84px;display:block;flex:none;opacity:.95;">`;
+      const gl=DB.auStyle==='light'; const cardBg=gl?'#ffffff':'#26282d'; const grey='#6c6e74'; const gastCol=gl?'#15161a':'#ffffff'; const gShadow=gl?'':'text-shadow:0 1px 8px rgba(0,0,0,.35);';
+      const emblem=gl?'':`<img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:80px;height:80px;display:block;flex:none;opacity:.95;">`;
       return `
       <div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:${cardBg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">
         <div style="height:94px;background:${grey};"></div>
         <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
-        <div style="padding:24px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
+        <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
           <div style="min-width:0;">
-            <div style="font:700 108px 'Saira Condensed',sans-serif;color:${gastCol};line-height:.84;letter-spacing:.02em;">GAST</div>
-            <div style="width:64px;height:4px;background:${grey};margin-top:16px;"></div>
+            <div style="font:700 56px 'Saira Condensed',sans-serif;color:${gastCol};line-height:.86;letter-spacing:.02em;${gShadow}">GAST</div>
+            <div style="width:58px;height:4px;background:${grey};margin-top:11px;"></div>
           </div>
           ${emblem}
         </div>
