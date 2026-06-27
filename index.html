@@ -461,7 +461,26 @@
   /* ===================== AUSWEIS card ===================== */
   function nameSize(name){ const n=(name||'').trim().length; if(n<=12)return 56; if(n<=16)return 48; if(n<=20)return 40; if(n<=24)return 34; if(n<=29)return 28; if(n<=36)return 23; return 19; }
   function auCardHTML(p, no){
-    const d=p.guest?GUEST:dept(p.dept); const hasFilmRole=!!(p.filmRole&&String(p.filmRole).trim());
+    if(p.guest){
+      const gl=DB.auStyle==='light'; const cardBg=gl?'#ffffff':'#26282d'; const grey='#6c6e74'; const gastCol=gl?'#2f3237':'#f4f3ef';
+      const emblem=gl?'':`<img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:84px;height:84px;display:block;flex:none;opacity:.95;">`;
+      return `
+      <div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:${cardBg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+        <div style="height:94px;background:${grey};"></div>
+        <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
+        <div style="padding:24px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
+          <div style="min-width:0;">
+            <div style="font:700 108px 'Saira Condensed',sans-serif;color:${gastCol};line-height:.84;letter-spacing:.02em;">GAST</div>
+            <div style="width:64px;height:4px;background:${grey};margin-top:16px;"></div>
+          </div>
+          ${emblem}
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid ${grey};display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
+          <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:26px;display:block;">
+        </div>
+      </div>`;
+    }
+    const d=dept(p.dept); const hasFilmRole=!!(p.filmRole&&String(p.filmRole).trim());
     const badges=[
       p.head?`<span style="display:inline-flex;align-items:center;gap:6px;background:#f4f3ef;border-radius:5px;padding:5px 10px;font:700 11px 'IBM Plex Mono',monospace;color:#15161a;letter-spacing:.08em;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;"></span>HEAD</span>`:'',
       p.lehrer?`<span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.12 300);border-radius:5px;padding:5px 10px;color:#211433;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M12 3 1 9l11 6 9-4.9V17h2V9L12 3zM5 13.2v3.3c0 1.5 3.1 3 7 3s7-1.5 7-3v-3.3l-7 3.8-7-3.8z"/></svg><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">LEHRER</span></span>`:'',
