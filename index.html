@@ -166,6 +166,7 @@
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #2a2c31;flex:none;flex-wrap:wrap;">
       <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Personal · <span id="auCount">0</span></span>
       <div style="display:flex;align-items:center;gap:10px;">
+        <label style="display:flex;align-items:center;gap:7px;"><span style="font:600 9px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a8d94;text-transform:uppercase;">Format</span><select id="auFormat" class="sel" style="width:auto;padding:8px 10px;cursor:pointer;"></select></label>
         <div id="auStyleToggle" class="act" role="button" tabindex="0" style="padding:8px 14px;">Design: Dunkel</div>
         <div id="auSort" class="act" role="button" tabindex="0" style="padding:8px 14px;">Nach Department sortieren</div>
         <div id="auAdd" class="act" role="button" tabindex="0" style="padding:8px 14px;font-weight:700;">+ NEU</div>
@@ -241,7 +242,7 @@
 
 <div id="printSheet"></div>
 <div id="dpToast" style="display:none;position:fixed;bottom:22px;left:50%;z-index:62;background:oklch(0.72 0.15 155);color:#0c0d10;padding:11px 20px;border-radius:10px;font:700 13px 'Saira Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase;align-items:center;gap:9px;box-shadow:0 10px 30px rgba(0,0,0,.4);"><span style="width:8px;height:8px;background:#0c0d10;transform:rotate(45deg);display:block;"></span>Übertragen</div>
-<datalist id="roleList"></datalist>
+<datalist id="roleList"></datalist><span id="roleLists"></span>
 
 <script>
 (() => {
@@ -266,7 +267,20 @@
   const GUEST = { name:'Gast', color:'#6c6e74', band:'#f4f3ef', role:'#b9bbc0' };
   // Uppercase that keeps the German ß (CSS text-transform:uppercase turns it into "SS").
   const nameUpper = (s)=> esc([...String(s==null?'':s)].map(c=>c==='ß'?'ß':c.toUpperCase()).join(''));
-  const ROLES = ['Regie','Regieassistenz','Aufnahmeleitung','Produktionsleitung','Produktionsassistenz','Drehbuch','Script / Continuity','Kamera / DOP','Kameraassistenz / Focus Puller','2nd AC / Clapper Loader','DIT','Oberbeleuchter / Gaffer','Beleuchter / Best Boy','Grip / Bühne','Ton / Tonmeister','Angel / Boom Operator','Szenenbild','Ausstattung / Set Decoration','Requisite / Props','Kostümbild','Garderobe','Maske / Make-up','Schnitt / Editor','VFX','Colorist','Sounddesign','Musik / Komponist','Standfotografie','Making-of','Catering','Transport / Fahrer','Darsteller/in','Komparse / Statist','Hospitanz'];
+  const ROLES_BY_DEPT = {
+    RG:['Regie','Regieassistenz','2. Regieassistenz','Script / Continuity','Regiehospitanz'],
+    PR:['Produktionsleitung','Aufnahmeleitung','Produktionsassistenz','Set-Runner','Disposition','Catering','Transport / Fahrer'],
+    TE:['Kamera / DOP','Kameraassistenz / Focus Puller','2nd AC / Clapper Loader','DIT','Oberbeleuchter / Gaffer','Beleuchter / Best Boy','Grip / Bühne','Ton / Tonmeister','Angel / Boom Operator','Schnitt / Editor','VFX','Colorist','Sounddesign'],
+    KO:['Kostümbild','Garderobe','Maske / Make-up','Haare'],
+    SZ:['Szenenbild','Ausstattung / Set Decoration','Requisite / Props','Standby Requisite','Set-Dressing'],
+    CA:['Darsteller/in','Hauptrolle','Nebenrolle','Komparse / Statist','Stunt','Double'],
+  };
+  const AU_FORMATS = [
+    {key:'cr80', label:'Scheckkarte · 85 × 54 mm', w:85},
+    {key:'l100', label:'Lanyard · 100 × 63 mm',   w:100},
+    {key:'xl110',label:'Badge XL · 110 × 69 mm',  w:110},
+    {key:'mini', label:'Mini · 70 × 44 mm',       w:70},
+  ];
 
   const KINDS = {
     alert:{fam:'hero',glyph:'rec',cat:'stop',orient:'L',eyebrow:'Aufnahme'},
@@ -294,7 +308,7 @@
   const FILM_DEFAULT = 'The Massacre of Love';
   const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null };
   const ACC = 'oklch(0.72 0.15 155)'; // board accent green
-  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A', auStyle: 'dark', board: {...BOARD_DEFAULTS} };
+  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A', auStyle: 'dark', auFormat: 'cr80', board: {...BOARD_DEFAULTS} };
   const num = (v)=>{ const n=parseInt(v,10); return isNaN(n)?0:n; };
   function todayKey(){ const d=new Date(); return isoOf(d); }
   const SCENE_NAMES = ['Vorspann · Establishing','Treppenhaus Nacht','Klassenzimmer leer','Pausenhof Tag','Spind-Konfrontation','Flur Verfolgung','Toilette Versteck','Aula Versammlung','Bibliothek Fund','Keller Entdeckung','Dachboden Geständnis','Parkplatz Abschied','Bushaltestelle Regen','Wohnzimmer Familie','Küche Streit','Schlafzimmer Brief','Wald Flucht','See Ufer','Brücke Treffen','Café Gespräch','Sporthalle Duell','Umkleide danach','Direktorat Verhör','Lehrerzimmer','Treppe Sturz','Krankenstation','Garten Erinnerung','Garage Plan','Straße Nacht','Bahnhof Ankunft','Zug Abteil','Hotel Lobby','Zimmer Enthüllung','Telefonzelle','Markt Gedränge','Kirche Stille','Friedhof Trauer','Strand Sonnenaufgang','Showdown Finale','Abspann · Wrap'];
@@ -307,7 +321,7 @@
   /* ===================== storage layer ===================== */
   // Single local "database". Swap these for a cloud adapter (e.g. Supabase REST)
   // to get true cross-device storage — same shape, just async.
-  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1' };
+  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', auformat:'xy_au_format_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1' };
   const uid = (p) => p + Math.random().toString(36).slice(2, 9);
 
   function normPerson(p){ return { id:p.id||uid('p'), name:p.name||'', dept:DEPTS[p.dept]?p.dept:'TE', role:p.role||'', filmRole:p.filmRole||'', head:!!p.head, media:!!p.media, legacy:!!p.legacy, lehrer:!!p.lehrer, noimg:!!p.noimg, guest:!!p.guest }; }
@@ -342,8 +356,9 @@
     film(){ try{ localStorage.setItem(K.film, DB.filmTitle); }catch(e){} },
     style(){ try{ localStorage.setItem(K.style, DB.signStyle); }catch(e){} },
     austyle(){ try{ localStorage.setItem(K.austyle, DB.auStyle); }catch(e){} },
+    auformat(){ try{ localStorage.setItem(K.auformat, DB.auFormat); }catch(e){} },
     board(){ try{ localStorage.setItem(K.board, JSON.stringify(DB.board)); }catch(e){} },
-    all(){ this.people(); this.signs(); this.film(); this.style(); this.austyle(); this.board(); },
+    all(){ this.people(); this.signs(); this.film(); this.style(); this.austyle(); this.auformat(); this.board(); },
   };
 
   // ---- client-side encryption (password protects the cloud data) ----
@@ -375,7 +390,7 @@
   const SUPA_H = { 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY, 'Content-Type':'application/json' };
   const Cloud = {
     enabled:true, lastEdit:0, lastSeen:0, busy:false, timer:null,
-    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle, auStyle:DB.auStyle, board:DB.board }; },
+    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle, auStyle:DB.auStyle, auFormat:DB.auFormat, board:DB.board }; },
     status(t,c){ const el=$('cloudStatus'); if(el){ el.textContent=t; el.style.color=c||'#6c6e74'; } },
     schedule(){ this.lastEdit=Date.now(); if(!this.enabled) return; clearTimeout(this.timer); this.timer=setTimeout(()=>this.push(),800); },
     // read the remote row; returns {data, updated_at} (data decrypted) or null
@@ -425,6 +440,7 @@
       DB.filmTitle = (()=>{ try{ return localStorage.getItem(K.film)||FILM_DEFAULT; }catch(e){ return FILM_DEFAULT; } })();
       DB.signStyle = (()=>{ try{ return localStorage.getItem(K.style)||'A'; }catch(e){ return 'A'; } })();
       DB.auStyle = (()=>{ try{ return localStorage.getItem(K.austyle)||'dark'; }catch(e){ return 'dark'; } })();
+      DB.auFormat = (()=>{ try{ return localStorage.getItem(K.auformat)||'cr80'; }catch(e){ return 'cr80'; } })();
       let bd=null; try{ bd=JSON.parse(localStorage.getItem(K.board)); if(!bd||typeof bd!=='object') bd=JSON.parse(localStorage.getItem(K.boardOld)); }catch(e){}
       DB.board = {...BOARD_DEFAULTS, ...(bd&&typeof bd==='object'?bd:{})};
       if(!Array.isArray(DB.board.scenes)) DB.board.scenes = makeDefaultScenes();
@@ -434,6 +450,7 @@
     saveFilm(){ LS.film(); Cloud.schedule(); },
     saveStyle(){ LS.style(); Cloud.schedule(); },
     saveAuStyle(){ LS.austyle(); Cloud.schedule(); },
+    saveAuFormat(){ LS.auformat(); Cloud.schedule(); },
     saveBoard(){ LS.board(); Cloud.schedule(); },
   };
 
@@ -445,6 +462,7 @@
     if(typeof data.filmTitle==='string') DB.filmTitle=data.filmTitle;
     if(data.signStyle==='A'||data.signStyle==='B') DB.signStyle=data.signStyle;
     if(data.auStyle==='dark'||data.auStyle==='light') DB.auStyle=data.auStyle;
+    if(typeof data.auFormat==='string' && AU_FORMATS.some(f=>f.key===data.auFormat)) DB.auFormat=data.auFormat;
     if(data.board&&typeof data.board==='object'){ DB.board={...BOARD_DEFAULTS, ...data.board}; if(!Array.isArray(DB.board.scenes)) DB.board.scenes=makeDefaultScenes(); }
     LS.all();
   }
@@ -470,6 +488,7 @@
         <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
         <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
           <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;"><span style="width:7px;height:7px;background:${grey};display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:${gl?'#6c6e74':'#a7a9af'};text-transform:uppercase;">${esc(DB.filmTitle)}</span></div>
             <div style="font:700 56px 'Saira Condensed',sans-serif;color:${gastCol};line-height:.86;letter-spacing:.02em;${gShadow}">GAST</div>
             <div style="width:58px;height:4px;background:${grey};margin-top:11px;"></div>
           </div>
@@ -480,7 +499,7 @@
         </div>
       </div>`;
     }
-    const d=dept(p.dept); const hasFilmRole=!!(p.filmRole&&String(p.filmRole).trim());
+    const d=dept(p.dept); const hasFilmRole=p.dept==='CA' && !!(p.filmRole&&String(p.filmRole).trim());
     const badges=[
       p.head?`<span style="display:inline-flex;align-items:center;gap:6px;background:#f4f3ef;border-radius:5px;padding:5px 10px;font:700 11px 'IBM Plex Mono',monospace;color:#15161a;letter-spacing:.08em;"><span style="width:8px;height:8px;background:#15161a;transform:rotate(45deg);display:block;"></span>HEAD</span>`:'',
       p.lehrer?`<span style="display:inline-flex;align-items:center;gap:6px;background:oklch(0.8 0.12 300);border-radius:5px;padding:5px 10px;color:#211433;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M12 3 1 9l11 6 9-4.9V17h2V9L12 3zM5 13.2v3.3c0 1.5 3.1 3 7 3s7-1.5 7-3v-3.3l-7 3.8-7-3.8z"/></svg><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;">LEHRER</span></span>`:'',
@@ -548,8 +567,8 @@
       <td data-label="Nr."><span class="nr" data-id="${p.id}" style="color:${p.guest?GUEST.color:d.color};font:700 14px 'IBM Plex Mono',monospace;">${pad(pIdx(p.id)+1)}</span></td>
       <td data-label="Name"><input class="inp" data-id="${p.id}" data-f="name" value="${esc(p.name)}" placeholder="Name"></td>
       <td data-label="Department"><select class="sel" data-id="${p.id}" data-f="dept">${deptOptions(p.dept)}</select></td>
-      <td data-label="Rolle / Funktion"><input class="inp" data-id="${p.id}" data-f="role" list="roleList" value="${esc(p.role)}" placeholder="z. B. Kamera / DOP"></td>
-      <td data-label="Rolle im Film"><input class="inp" data-id="${p.id}" data-f="filmRole" value="${esc(p.filmRole)}" placeholder="optional"></td>
+      <td data-label="Rolle / Funktion"><input class="inp" data-id="${p.id}" data-f="role" list="roleList_${p.dept}" value="${esc(p.role)}" placeholder="z. B. Kamera / DOP"></td>
+      <td data-label="Rolle im Film">${p.dept==='CA'?`<input class="inp" data-id="${p.id}" data-f="filmRole" value="${esc(p.filmRole)}" placeholder="z. B. Detektivin Halm">`:`<span style="color:#5a5d64;font:500 12px 'IBM Plex Mono',monospace;">— nur Cast</span>`}</td>
       <td data-label="Markierungen"><div style="display:flex;gap:6px;flex-wrap:wrap;">
         <span class="mark" data-id="${p.id}" data-mark="head" style="${markStyle('head',p.head)}">HEAD</span>
         <span class="mark" data-id="${p.id}" data-mark="lehrer" style="${markStyle('lehrer',p.lehrer)}">LEHRER</span>
@@ -584,7 +603,7 @@
 
   function wirePeople(){ const tb=auTbody();
     const onField=(e)=>{ const el=e.target.closest('[data-f]'); if(!el)return; const id=el.getAttribute('data-id'),f=el.getAttribute('data-f'); auUpdate(id,f,el.value);
-      if(f==='dept'){ const nr=tb.querySelector(`.nr[data-id="${id}"]`); if(nr)nr.style.color=dept(el.value).color; }
+      if(f==='dept'){ renderPeople(); renderAuPreview(); return; }   // role suggestions + Cast-only film role depend on dept
       if(id===AU.selectedId) renderAuPreview(); };
     tb.addEventListener('input',onField); tb.addEventListener('change',onField);
     tb.addEventListener('focusin',(e)=>{ const el=e.target.closest('[data-id]'); if(el) auSelect(el.getAttribute('data-id')); });
@@ -605,11 +624,17 @@
     $('auSort').addEventListener('click',()=>{ AU.sortByDept=!AU.sortByDept; styleSort(); renderPeople(); }); styleSort();
     const styleAu=()=>{ const b=$('auStyleToggle'); b.textContent='Design: '+(DB.auStyle==='light'?'Hell':'Dunkel'); if(DB.auStyle==='light'){b.style.background='#f4f3ef';b.style.color='#15161a';b.style.borderColor='#f4f3ef';} else {b.style.background='#1d1f24';b.style.color='#c9cace';b.style.borderColor='#34373e';} };
     $('auStyleToggle').addEventListener('click',()=>{ DB.auStyle=DB.auStyle==='light'?'dark':'light'; Store.saveAuStyle(); styleAu(); renderAuPreview(); }); styleAu();
+    $('auFormat').innerHTML=AU_FORMATS.map(f=>`<option value="${f.key}"${f.key===DB.auFormat?' selected':''}>${esc(f.label)}</option>`).join('');
+    $('auFormat').addEventListener('change',(e)=>{ DB.auFormat=e.target.value; Store.saveAuFormat(); });
     $('auAdd').addEventListener('click',auAdd);
     $('auPrintAll').addEventListener('click',auPrintAll);
   }
 
-  function auCardBlock(p,i){ return `<div style="display:inline-block;vertical-align:top;width:85mm;height:54mm;overflow:hidden;border-radius:0;margin:0 5mm 5mm 0;break-inside:avoid;page-break-inside:avoid;"><div style="width:520px;height:328px;transform:scale(0.6178);transform-origin:top left;">${auCardHTML(p,pad(i+1))}</div></div>`; }
+  function auCardBlock(p,i){
+    const fmt=AU_FORMATS.find(f=>f.key===DB.auFormat)||AU_FORMATS[0];
+    const W=fmt.w, sc=(W*3.7795)/520, Hmm=(328*W/520).toFixed(1);
+    return `<div style="display:inline-block;vertical-align:top;width:${W}mm;height:${Hmm}mm;overflow:hidden;border-radius:0;margin:0 5mm 5mm 0;break-inside:avoid;page-break-inside:avoid;"><div style="width:520px;height:328px;transform:scale(${sc.toFixed(4)});transform-origin:top left;">${auCardHTML(p,pad(i+1))}</div></div>`;
+  }
   function auPrintAll(){ const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auDisplay().map(p=>auCardBlock(p,pIdx(p.id))).join(''); doPrint(); }
   function auPrintOne(id){ const i=pIdx(id); if(i<0)return; const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auCardBlock(DB.people[i],i); doPrint(); }
 
@@ -1016,7 +1041,8 @@
   let built=false;
   function buildApp(){
     Store.load();
-    $('roleList').innerHTML=ROLES.map(r=>`<option value="${esc(r)}"></option>`).join('');
+    $('roleLists').innerHTML=Object.keys(ROLES_BY_DEPT).map(k=>`<datalist id="roleList_${k}">${ROLES_BY_DEPT[k].map(r=>`<option value="${esc(r)}"></option>`).join('')}</datalist>`).join('');
+    $('roleList').innerHTML=Object.values(ROLES_BY_DEPT).flat().map(r=>`<option value="${esc(r)}"></option>`).join('');
     $('filmTitle').value=DB.filmTitle;
     AU.selectedId=DB.people[0]?DB.people[0].id:null;
     SC.selectedId=DB.signs[0]?DB.signs[0].id:null;
