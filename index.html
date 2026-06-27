@@ -234,6 +234,7 @@
 <!-- ================= STATISTIK-BOARD (fullscreen) ================= -->
 <div id="boardView" style="display:none;position:fixed;inset:0;z-index:60;background:#0c0d10;align-items:center;justify-content:center;overflow:hidden;">
   <div id="boardStage" style="width:1920px;height:1080px;flex:none;transform-origin:center center;position:relative;background:#15161a;overflow:hidden;font-family:'IBM Plex Mono',monospace;color:#f4f3ef;"></div>
+  <div id="boardMobile" style="display:none;width:100%;height:100%;overflow-y:auto;background:#0c0d10;font-family:'IBM Plex Mono',monospace;color:#f4f3ef;"></div>
   <div style="position:fixed;bottom:16px;right:16px;display:flex;gap:8px;z-index:61;">
     <div id="boardFull" title="Vollbild" style="cursor:pointer;width:38px;height:38px;border-radius:9px;background:rgba(28,29,33,.72);border:1px solid #34373e;backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:#9a9ca3;"><span style="width:15px;height:15px;border:2px solid currentColor;border-radius:3px;display:block;"></span></div>
     <div id="boardClose" style="cursor:pointer;height:38px;padding:0 14px;border-radius:9px;background:rgba(28,29,33,.72);border:1px solid #34373e;backdrop-filter:blur(6px);display:flex;align-items:center;gap:8px;color:#c9cace;font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.1em;">✕ SCHLIESSEN</div>
@@ -413,6 +414,11 @@
         this.lastSeen=Date.parse(updated_at)||this.lastSeen; this.status('Cloud · synchron','#6ee7b7');
       }catch(e){ this.status('Cloud · offline (lokal gesichert)','#e0a04a'); }
       this.busy=false;
+      this.publishBoard();
+    },
+    // Unencrypted public board copy (stats/scenes/film only) for the password-free #board view
+    async publishBoard(){
+      try{ await fetch(`${SUPA_URL}/crew_state?on_conflict=id`,{method:'POST',headers:{...SUPA_H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([{id:'board',data:{board:DB.board,film:DB.filmTitle},updated_at:new Date().toISOString()}])}); }catch(e){}
     },
     async pull(initial){
       if(!this.enabled) return;
@@ -421,7 +427,7 @@
         const hasRemote = data && (Array.isArray(data.people)||Array.isArray(data.signs));
         if(!hasRemote){ await this.push(); return; }                  // remote empty -> seed it from local
         const ru=Date.parse(updated_at)||0;
-        if(initial){ applySnapshot(data); this.lastSeen=ru; renderActive(); this.status('Cloud · synchron','#6ee7b7'); return; }
+        if(initial){ applySnapshot(data); this.lastSeen=ru; renderActive(); this.status('Cloud · synchron','#6ee7b7'); this.publishBoard(); return; }
         if(ru>this.lastSeen && (Date.now()-this.lastEdit>5000)){      // newer remote & not mid-edit
           applySnapshot(data); this.lastSeen=ru; renderActive(); this.status('Cloud · aktualisiert','#6ee7b7');
         }
@@ -481,7 +487,8 @@
   function auCardHTML(p, no){
     if(p.guest){
       const gl=DB.auStyle==='light'; const cardBg=gl?'#ffffff':'#26282d'; const grey='#6c6e74'; const gastCol=gl?'#15161a':'#ffffff'; const gShadow=gl?'':'text-shadow:0 1px 8px rgba(0,0,0,.35);';
-      const emblem=gl?'':`<img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:80px;height:80px;display:block;flex:none;opacity:.95;">`;
+      const gEmblem=gl?'':`<img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:60px;height:60px;display:block;flex:none;opacity:.95;">`;
+      const gRight=`<div style="display:flex;flex-direction:column;align-items:flex-end;gap:9px;flex:none;"><div style="background:#fff;padding:5px;border-radius:7px;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;"><img src="assets/qr-board.svg" alt="Live-Board scannen" style="width:58px;height:58px;display:block;"></div>${gEmblem}</div>`;
       return `
       <div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:${cardBg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">
         <div style="height:94px;background:${grey};"></div>
@@ -492,7 +499,7 @@
             <div style="font:700 56px 'Saira Condensed',sans-serif;color:${gastCol};line-height:.86;letter-spacing:.02em;${gShadow}">GAST</div>
             <div style="width:58px;height:4px;background:${grey};margin-top:11px;"></div>
           </div>
-          ${emblem}
+          ${gRight}
         </div>
         <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid ${grey};display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
           <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:26px;display:block;">
@@ -514,7 +521,9 @@
     const nameShadow = light?'':'text-shadow:0 1px 8px rgba(0,0,0,.35);';
     const roleCol = light?d.color:d.role;
     const frLabel = light?'#9a9ca3':'#7b7d83';
-    const emblem = light?'':`<img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:80px;height:80px;display:block;flex:none;opacity:.95;">`;
+    const emblem = light?'':`<img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:60px;height:60px;display:block;flex:none;opacity:.95;">`;
+    const qrBox = `<div style="background:#fff;padding:5px;border-radius:7px;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;"><img src="assets/qr-board.svg" alt="Live-Board scannen" style="width:58px;height:58px;display:block;"></div>`;
+    const rightCol = `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:9px;flex:none;">${qrBox}${emblem}</div>`;
     return `
     <div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:${cardBg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">
       <div style="height:94px;background:${d.color};display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:0 24px 14px;">
@@ -530,7 +539,7 @@
           <div style="font:500 15px 'IBM Plex Mono',monospace;color:${roleCol};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
           ${hasFilmRole?`<div style="font:500 9.5px 'IBM Plex Mono',monospace;color:${frLabel};letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div><div style="font:600 23px 'Saira Condensed',sans-serif;color:${roleCol};margin-top:2px;letter-spacing:.02em;overflow-wrap:anywhere;">${nameUpper(p.filmRole)}</div>`:''}
         </div>
-        ${emblem}
+        ${rightCol}
       </div>
       <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid ${d.color};display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
         <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:26px;display:block;">
@@ -900,7 +909,8 @@
 
   /* ===================== DREHPLAN-STEUERUNG + BOARD ===================== */
   const DP = { filter:'all' };
-  let boardOpen=false, boardTick=null, boardPrev=null, toastT=null;
+  let boardOpen=false, boardTick=null, boardPrev=null, toastT=null, boardPublic=false;
+  const boardIsMobile = ()=> window.matchMedia('(max-width:760px)').matches;
   function flashToast(){ const el=$('dpToast'); if(!el) return; el.style.display='flex'; el.style.animation='none'; void el.offsetWidth; el.style.animation='savedpop 1.4s ease forwards'; clearTimeout(toastT); toastT=setTimeout(()=>{ el.style.display='none'; },1400); }
   // odometer / split-flap roll: number scrolls up (increase) or down (decrease)
   let odoSeq=0, odoQueue=[];
@@ -979,6 +989,8 @@
   function closeBoard(){ boardOpen=false; $('boardView').style.display='none'; clearInterval(boardTick); boardTick=null; try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){} }
 
   function renderBoard(){
+    if(boardIsMobile()){ $('boardStage').style.display='none'; $('boardMobile').style.display='block'; renderBoardMobile(); return; }
+    $('boardMobile').style.display='none'; $('boardStage').style.display='block'; fitBoard();
     odoQueue=[];
     const d=DB.board; const sc=bScenes(); const today=todayKey();
     const sd=sc.length?sc.filter(s=>s.done).length:0; const st=sc.length?sc.length:num(d.scenesTotal); const pct=st>0?Math.max(0,Math.min(100,Math.round(sd/st*100))):0;
@@ -1026,6 +1038,60 @@
       q.forEach(id=>{ const el=$(id); if(el){ void el.offsetHeight; el.style.transform='translateY('+el.getAttribute('data-endy')+')'; } });
     });
     boardPrev={ pct, hpct, sd, remaining, dn, current:d.current, participants:num(d.participants), classes:num(d.classes), crewToday:num(d.crewToday), minutesShot:num(d.minutesShot) };
+  }
+
+  // Mobile / phone board (responsive, vertical) — also used by the public #board view
+  function renderBoardMobile(){
+    const d=DB.board; const sc=bScenes(); const today=todayKey();
+    const sd=sc.length?sc.filter(s=>s.done).length:0; const st=sc.length?sc.length:num(d.scenesTotal); const pct=st>0?Math.max(0,Math.min(100,Math.round(sd/st*100))):0;
+    const hd=sc.filter(s=>s.done&&s.doneAt===today).length; const hp=num(d.todayPlan); const hpct=hp>0?Math.max(0,Math.min(100,Math.round(hd/hp*100))):0;
+    const dn=num(d.dayNum), dt=num(d.dayTotal); const remaining=Math.max(hp-hd,0);
+    const curScene=sc.find(s=>s.id===d.current)||null; const c=clockParts();
+    const card='background:#1b1d22;border:1px solid #2a2c31;border-radius:16px;';
+    const tiles=[['oklch(0.62 0.13 245)','Teilnehmer:innen',num(d.participants),''],['oklch(0.6 0.18 290)','Klassen',num(d.classes),''],['oklch(0.72 0.15 155)','Crew heute',num(d.crewToday),''],['oklch(0.7 0.12 210)','Material',num(d.minutesShot),'Min']].map(([acc,eye,val,unit])=>`<div style="${card}padding:14px 16px;"><div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;background:${acc};transform:rotate(45deg);display:block;flex:none;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#9a9ca3;text-transform:uppercase;">${eye}</span></div><div style="display:flex;align-items:baseline;gap:6px;margin-top:8px;"><span style="font:700 44px 'Saira Condensed',sans-serif;line-height:.8;">${val}</span>${unit?`<span style="font:600 14px 'Saira Condensed',sans-serif;color:${acc};text-transform:uppercase;">${unit}</span>`:''}</div></div>`).join('');
+    $('boardMobile').innerHTML=`
+      <div style="display:flex;flex-direction:column;gap:13px;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="min-width:0;"><div style="font:700 22px 'Saira Condensed',sans-serif;letter-spacing:.03em;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dreh-Status</div><div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(DB.filmTitle)}</div></div>
+          <div style="text-align:right;flex:none;"><div style="display:flex;align-items:center;justify-content:flex-end;gap:7px;"><span style="width:8px;height:8px;border-radius:50%;background:${ACC};display:block;animation:livedot 1.6s ease-in-out infinite;"></span><span id="boardTime" style="font:700 26px 'Saira Condensed',sans-serif;line-height:.9;">${c.time}</span></div><div id="boardDate" style="font:500 10px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:3px;text-transform:capitalize;">${c.date}</div></div>
+        </div>
+        <div style="${curScene?'background:linear-gradient(90deg,oklch(0.3 0.08 25),#1b1d22 75%);border:1px solid oklch(0.5 0.14 25);':card}border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+          <span style="width:13px;height:13px;border-radius:50%;background:${curScene?'oklch(0.6 0.21 25)':'#3a3d44'};display:block;flex:none;${curScene?'animation:livedot 1.2s ease-in-out infinite;':''}"></span>
+          ${curScene?`<div style="min-width:0;"><div style="font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:oklch(0.8 0.16 25);text-transform:uppercase;">Jetzt im Dreh</div><div style="font:700 22px 'Saira Condensed',sans-serif;text-transform:uppercase;line-height:1;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">SZ ${curScene.no} · ${esc(curScene.title||'—')}</div></div>`:`<span style="font:600 13px 'IBM Plex Mono',monospace;color:#8a8d94;">Drehpause</span>`}
+        </div>
+        <div style="${card}padding:18px 18px;">
+          <div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#9a9ca3;text-transform:uppercase;">Szenen im Kasten</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:6px;"><div style="display:flex;align-items:baseline;gap:4px;"><span style="font:700 64px 'Saira Condensed',sans-serif;line-height:.78;">${sd}</span><span style="font:600 30px 'Saira Condensed',sans-serif;color:#6c6e74;">/${st}</span></div><span style="font:700 50px 'Saira Condensed',sans-serif;color:${ACC};line-height:.8;">${pct}<span style="font-size:22px;color:#8a8d94;">%</span></span></div>
+          <div style="margin-top:14px;height:14px;background:#26282d;border-radius:7px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${ACC};border-radius:7px;transition:width .8s cubic-bezier(.2,.7,.2,1);"></div></div>
+          <div style="font:600 17px 'Saira Condensed',sans-serif;text-transform:uppercase;margin-top:12px;">${esc(encourage(pct))}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">
+          <div style="${card}padding:14px 16px;border-left:5px solid oklch(0.8 0.16 78);"><div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#9a9ca3;text-transform:uppercase;">Heute noch</div><div style="display:flex;align-items:baseline;gap:6px;margin-top:6px;"><span style="font:700 44px 'Saira Condensed',sans-serif;line-height:.8;">${remaining}</span><span style="font:600 12px 'Saira Condensed',sans-serif;color:oklch(0.84 0.13 78);text-transform:uppercase;">offen</span></div><div style="font:500 10px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:6px;">${hd} / ${hp} heute</div></div>
+          <div style="${card}padding:14px 16px;border-left:5px solid oklch(0.6 0.18 290);"><div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#9a9ca3;text-transform:uppercase;">Drehtag</div><div style="display:flex;align-items:baseline;gap:4px;margin-top:6px;"><span style="font:700 44px 'Saira Condensed',sans-serif;line-height:.8;">${dn}</span><span style="font:600 20px 'Saira Condensed',sans-serif;color:#6c6e74;">/${dt}</span></div><div style="font:500 10px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:6px;">noch ${Math.max(dt-dn,0)} Tage</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">${tiles}</div>
+        <div style="text-align:center;color:#5a5d64;font:400 10px 'IBM Plex Mono',monospace;line-height:1.6;padding:4px 0 8px;">XY Pictures · Heinrich-Hertz-Gymnasium · Live</div>
+      </div>`;
+  }
+
+  // Public, password-free board (opened via the QR / #board link)
+  async function loadPublicBoard(){
+    try{
+      const r=await fetch(`${SUPA_URL}/crew_state?id=eq.board&select=data`,{headers:SUPA_H});
+      if(!r.ok) return; const rows=await r.json(); const d=rows&&rows[0]&&rows[0].data;
+      if(d){ if(d.board&&typeof d.board==='object') DB.board={...BOARD_DEFAULTS, ...d.board}; if(typeof d.film==='string') DB.filmTitle=d.film; renderBoard(); }
+    }catch(e){}
+  }
+  function startPublicBoard(){
+    boardPublic=true; boardOpen=true;
+    $('gate').style.display='none'; $('app').style.display='none'; $('boardView').style.display='flex';
+    const cl=$('boardClose'); if(cl) cl.style.display='none';
+    renderBoard();
+    loadPublicBoard();
+    setInterval(loadPublicBoard, 10000);
+    clearInterval(boardTick); boardTick=setInterval(()=>{ const c=clockParts(); const t=$('boardTime'),dd=$('boardDate'); if(t)t.textContent=c.time; if(dd)dd.textContent=c.date; },1000);
+    $('boardFull').addEventListener('click',()=>{ try{ if(document.fullscreenElement) document.exitFullscreen(); else $('boardView').requestFullscreen(); }catch(e){} });
+    window.addEventListener('resize',()=>renderBoard());
   }
 
   /* ===================== tabs + init ===================== */
@@ -1086,6 +1152,7 @@
     if(!built){ buildApp(); built=true; }
   }
   function setupGate(){
+    if((location.hash||'').replace('#','').toLowerCase()==='board'){ startPublicBoard(); return; }   // public, password-free board
     $('gateForm').addEventListener('submit',(e)=>{ e.preventDefault(); unlock($('gatePw').value); });
     let saved=null; try{ saved=sessionStorage.getItem('xy_pw'); }catch(e){}
     if(saved){ $('gatePw').value=saved; unlock(saved); } else { setTimeout(()=>$('gatePw').focus(),60); }
