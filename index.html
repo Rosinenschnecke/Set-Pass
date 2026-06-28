@@ -190,7 +190,53 @@
         <div id="auPreviewWrap" style="display:flex;flex-direction:column;gap:16px;align-items:center;">
           <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · 85 × 54 mm</div>
           <div id="auPreviewCard"></div>
+          <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;margin-top:6px;">Rückseite · global</div>
+          <div id="auBackCard"></div>
           <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:420px;text-align:center;line-height:1.5;">Dies ist die zentrale Personal-Datenbank. Sie speist die Ausweise <b>und</b> die Namensliste im Set-Schilder-Tab.</div>
+          <div style="width:100%;max-width:460px;background:#15161a;border:1px solid #2a2c31;border-radius:14px;padding:16px 16px 14px;display:flex;flex-direction:column;gap:12px;text-align:left;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;">Rückseite · global editieren</div>
+              <div style="font:500 9.5px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#6c6e74;text-transform:uppercase;">1 Zeile = 1 Eintrag, Trennung mit |</div>
+            </div>
+            <label style="display:block;">
+              <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Kopfleiste</span>
+              <input id="backKicker" class="inp" style="background:#1d1f24;border-color:#34373e;" placeholder="THE MASSACRE OF LOVE — CREW ACCESS · RÜCKSEITE">
+            </label>
+            <label style="display:block;">
+              <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Titel</span>
+              <input id="backTitle" class="inp" style="background:#1d1f24;border-color:#34373e;" placeholder="Crew-Ausweis · Rückseite">
+            </label>
+            <label style="display:block;">
+              <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Beschreibung</span>
+              <textarea id="backSubtitle" class="inp" rows="3" style="resize:vertical;min-height:78px;background:#1d1f24;border-color:#34373e;line-height:1.45;" placeholder="Einheitliche Rückseite für alle Departments ..."></textarea>
+            </label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <label style="display:block;">
+                <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">QR-Label</span>
+                <input id="backQrLabel" class="inp" style="background:#1d1f24;border-color:#34373e;" placeholder="DREHPLAN">
+              </label>
+              <label style="display:block;">
+                <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">QR-Hinweis</span>
+                <input id="backQrHint" class="inp" style="background:#1d1f24;border-color:#34373e;" placeholder="Scan für den aktuellen Plan">
+              </label>
+            </div>
+            <label style="display:block;">
+              <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Tagesablauf</span>
+              <textarea id="backSchedule" class="inp" rows="8" style="resize:vertical;min-height:160px;background:#1d1f24;border-color:#34373e;line-height:1.45;" placeholder="08:00 | Treffpunkt & Check-in"></textarea>
+            </label>
+            <label style="display:block;">
+              <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Wichtige Räume</span>
+              <textarea id="backRooms" class="inp" rows="7" style="resize:vertical;min-height:140px;background:#1d1f24;border-color:#34373e;line-height:1.45;" placeholder="Basis / Crew | R. 014"></textarea>
+            </label>
+            <label style="display:block;">
+              <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Wichtige Personen / Notfall</span>
+              <textarea id="backContacts" class="inp" rows="6" style="resize:vertical;min-height:124px;background:#1d1f24;border-color:#34373e;line-height:1.45;" placeholder="Notruf | 112"></textarea>
+            </label>
+            <label style="display:block;">
+              <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a8d94;text-transform:uppercase;display:block;margin-bottom:6px;">Fußzeile</span>
+              <input id="backFooter" class="inp" style="background:#1d1f24;border-color:#34373e;" placeholder="Bei Fund zurück an Aufnahmeleitung · R. 014">
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -308,8 +354,42 @@
 
   const FILM_DEFAULT = 'The Massacre of Love';
   const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null };
+  const BACK_DEFAULTS = {
+    kicker:'THE MASSACRE OF LOVE — CREW ACCESS · RÜCKSEITE',
+    title:'Crew-Ausweis · Rückseite',
+    subtitle:'Einheitliche Rückseite für alle Departments — übersichtliches Info-Datenblatt mit Drehtag-Ablauf, wichtigen Räumen, Notfall-Kontakten und QR-Code zum aktuellen Drehplan.',
+    schedule:[
+      {time:'08:00', label:'Treffpunkt & Check-in'},
+      {time:'08:15', label:'Maske & Kostüm'},
+      {time:'09:00', label:'Setbau / Einleuchten'},
+      {time:'09:30', label:'Drehbeginn · Call'},
+      {time:'13:00', label:'Mittagspause · Catering'},
+      {time:'13:45', label:'Weiter am Set'},
+      {time:'17:30', label:'Wrap · Sichtung'},
+      {time:'18:00', label:'Set-Rückbau'},
+    ],
+    rooms:[
+      {label:'Basis / Crew', value:'R. 014'},
+      {label:'Maske & Kostüm', value:'R. 011'},
+      {label:'Catering', value:'Mensa'},
+      {label:'Technik-Lager', value:'R. 109'},
+      {label:'Cast-Aufenthalt', value:'Aula'},
+      {label:'Set heute', value:'Trakt B'},
+      {label:'Erste Hilfe', value:'Sekret. EG'},
+    ],
+    contacts:[
+      {label:'Notruf', value:'112'},
+      {label:'Aufnahmeleitung', value:'0176 22…'},
+      {label:'1. AD / Set', value:'0176 33…'},
+      {label:'Aufsicht', value:'Hr. Adler'},
+    ],
+    qrLabel:'DREHPLAN',
+    qrHint:'Scan für den aktuellen Plan',
+    footer:'Bei Fund zurück an Aufnahmeleitung · R. 014',
+    school:'HEINRICH-HERTZ-GYMNASIUM',
+  };
   const ACC = 'oklch(0.72 0.15 155)'; // board accent green
-  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A', auStyle: 'dark', auFormat: 'cr80', board: {...BOARD_DEFAULTS} };
+  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A', auStyle: 'dark', auFormat: 'cr80', back:{...BACK_DEFAULTS}, board: {...BOARD_DEFAULTS} };
   const num = (v)=>{ const n=parseInt(v,10); return isNaN(n)?0:n; };
   function todayKey(){ const d=new Date(); return isoOf(d); }
   const SCENE_NAMES = ['Vorspann · Establishing','Treppenhaus Nacht','Klassenzimmer leer','Pausenhof Tag','Spind-Konfrontation','Flur Verfolgung','Toilette Versteck','Aula Versammlung','Bibliothek Fund','Keller Entdeckung','Dachboden Geständnis','Parkplatz Abschied','Bushaltestelle Regen','Wohnzimmer Familie','Küche Streit','Schlafzimmer Brief','Wald Flucht','See Ufer','Brücke Treffen','Café Gespräch','Sporthalle Duell','Umkleide danach','Direktorat Verhör','Lehrerzimmer','Treppe Sturz','Krankenstation','Garten Erinnerung','Garage Plan','Straße Nacht','Bahnhof Ankunft','Zug Abteil','Hotel Lobby','Zimmer Enthüllung','Telefonzelle','Markt Gedränge','Kirche Stille','Friedhof Trauer','Strand Sonnenaufgang','Showdown Finale','Abspann · Wrap'];
@@ -318,11 +398,40 @@
   const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
   function isoOf(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
   function dateParts(iso){ if(!iso) return {week:'',date:''}; const d=new Date(iso+'T00:00:00'); if(isNaN(d)) return {week:'',date:''}; return {week:WEEKDAYS[d.getDay()], date:d.getDate()+'. '+MONTHS[d.getMonth()]}; }
+  function normBack(b){
+    const src = b && typeof b === 'object' ? b : {};
+    const cleanRows = (rows, keys) => Array.isArray(rows) ? rows.map((row) => {
+      const out = {};
+      keys.forEach((key) => { out[key] = String(row && row[key] != null ? row[key] : '').trim(); });
+      return out;
+    }).filter((row) => keys.some((key) => row[key])) : [];
+    return {
+      kicker: String(src.kicker || BACK_DEFAULTS.kicker),
+      title: String(src.title || BACK_DEFAULTS.title),
+      subtitle: String(src.subtitle || BACK_DEFAULTS.subtitle),
+      schedule: cleanRows(src.schedule || BACK_DEFAULTS.schedule, ['time','label']),
+      rooms: cleanRows(src.rooms || BACK_DEFAULTS.rooms, ['label','value']),
+      contacts: cleanRows(src.contacts || BACK_DEFAULTS.contacts, ['label','value']),
+      qrLabel: String(src.qrLabel || BACK_DEFAULTS.qrLabel),
+      qrHint: String(src.qrHint || BACK_DEFAULTS.qrHint),
+      footer: String(src.footer || BACK_DEFAULTS.footer),
+      school: String(src.school || BACK_DEFAULTS.school),
+    };
+  }
+  function rowsText(rows, keys){ return (rows||[]).map((row)=>keys.map((key)=>String(row && row[key] != null ? row[key] : '').trim()).join(' | ')).join('\n'); }
+  function parseRows(text, keys){
+    return String(text || '').split(/\r?\n/).map((line)=>line.trim()).filter(Boolean).map((line)=>{
+      const parts = line.split('|').map((part)=>part.trim());
+      const row = {};
+      keys.forEach((key, index)=>{ row[key] = parts[index] || ''; });
+      return row;
+    }).filter((row)=>keys.some((key)=>row[key]));
+  }
 
   /* ===================== storage layer ===================== */
   // Single local "database". Swap these for a cloud adapter (e.g. Supabase REST)
   // to get true cross-device storage — same shape, just async.
-  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', auformat:'xy_au_format_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1' };
+  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', auformat:'xy_au_format_v1', back:'xy_au_back_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1' };
   const uid = (p) => p + Math.random().toString(36).slice(2, 9);
 
   function normPerson(p){ return { id:p.id||uid('p'), name:p.name||'', dept:DEPTS[p.dept]?p.dept:'TE', role:p.role||'', filmRole:p.filmRole||'', head:!!p.head, media:!!p.media, legacy:!!p.legacy, lehrer:!!p.lehrer, noimg:!!p.noimg, guest:!!p.guest }; }
@@ -358,8 +467,9 @@
     style(){ try{ localStorage.setItem(K.style, DB.signStyle); }catch(e){} },
     austyle(){ try{ localStorage.setItem(K.austyle, DB.auStyle); }catch(e){} },
     auformat(){ try{ localStorage.setItem(K.auformat, DB.auFormat); }catch(e){} },
+    back(){ try{ localStorage.setItem(K.back, JSON.stringify(DB.back)); }catch(e){} },
     board(){ try{ localStorage.setItem(K.board, JSON.stringify(DB.board)); }catch(e){} },
-    all(){ this.people(); this.signs(); this.film(); this.style(); this.austyle(); this.auformat(); this.board(); },
+    all(){ this.people(); this.signs(); this.film(); this.style(); this.austyle(); this.auformat(); this.back(); this.board(); },
   };
 
   // ---- client-side encryption (password protects the cloud data) ----
@@ -391,7 +501,7 @@
   const SUPA_H = { 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY, 'Content-Type':'application/json' };
   const Cloud = {
     enabled:true, lastEdit:0, lastSeen:0, busy:false, timer:null,
-    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle, auStyle:DB.auStyle, auFormat:DB.auFormat, board:DB.board }; },
+    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle, auStyle:DB.auStyle, auFormat:DB.auFormat, back:DB.back, board:DB.board }; },
     status(t,c){ const el=$('cloudStatus'); if(el){ el.textContent=t; el.style.color=c||'#6c6e74'; } },
     schedule(){ this.lastEdit=Date.now(); if(!this.enabled) return; clearTimeout(this.timer); this.timer=setTimeout(()=>this.push(),800); },
     // read the remote row; returns {data, updated_at} (data decrypted) or null
@@ -438,15 +548,17 @@
 
   const Store = {
     load(){
-      let p=null,s=null;
+      let p=null,s=null,b=null;
       try{ p=JSON.parse(localStorage.getItem(K.people)); }catch(e){}
       try{ s=JSON.parse(localStorage.getItem(K.signs)); if(!Array.isArray(s)) s=JSON.parse(localStorage.getItem(K.signsOld)); }catch(e){}
+      try{ b=JSON.parse(localStorage.getItem(K.back)); }catch(e){}
       DB.people = (Array.isArray(p)&&p.length? p : seedPeople()).map(normPerson);
       DB.signs = (Array.isArray(s)&&s.length? s : seedSigns());
       DB.filmTitle = (()=>{ try{ return localStorage.getItem(K.film)||FILM_DEFAULT; }catch(e){ return FILM_DEFAULT; } })();
       DB.signStyle = (()=>{ try{ return localStorage.getItem(K.style)||'A'; }catch(e){ return 'A'; } })();
       DB.auStyle = (()=>{ try{ return localStorage.getItem(K.austyle)||'dark'; }catch(e){ return 'dark'; } })();
       DB.auFormat = (()=>{ try{ return localStorage.getItem(K.auformat)||'cr80'; }catch(e){ return 'cr80'; } })();
+      DB.back = normBack(b);
       let bd=null; try{ bd=JSON.parse(localStorage.getItem(K.board)); if(!bd||typeof bd!=='object') bd=JSON.parse(localStorage.getItem(K.boardOld)); }catch(e){}
       DB.board = {...BOARD_DEFAULTS, ...(bd&&typeof bd==='object'?bd:{})};
       if(!Array.isArray(DB.board.scenes)) DB.board.scenes = makeDefaultScenes();
@@ -457,6 +569,7 @@
     saveStyle(){ LS.style(); Cloud.schedule(); },
     saveAuStyle(){ LS.austyle(); Cloud.schedule(); },
     saveAuFormat(){ LS.auformat(); Cloud.schedule(); },
+    saveBack(){ LS.back(); Cloud.schedule(); },
     saveBoard(){ LS.board(); Cloud.schedule(); },
   };
 
@@ -469,6 +582,7 @@
     if(data.signStyle==='A'||data.signStyle==='B') DB.signStyle=data.signStyle;
     if(data.auStyle==='dark'||data.auStyle==='light') DB.auStyle=data.auStyle;
     if(typeof data.auFormat==='string' && AU_FORMATS.some(f=>f.key===data.auFormat)) DB.auFormat=data.auFormat;
+    if(data.back&&typeof data.back==='object') DB.back=normBack(data.back);
     if(data.board&&typeof data.board==='object'){ DB.board={...BOARD_DEFAULTS, ...data.board}; if(!Array.isArray(DB.board.scenes)) DB.board.scenes=makeDefaultScenes(); }
     LS.all();
   }
@@ -477,9 +591,40 @@
     if(!pById(AU.selectedId)) AU.selectedId=DB.people[0]?DB.people[0].id:null;
     if(!sById(SC.selectedId)) SC.selectedId=DB.signs[0]?DB.signs[0].id:null;
     const ft=$('filmTitle'); if(document.activeElement!==ft) ft.value=DB.filmTitle;
+    syncBackInputs();
     renderPeople();
     if(activeTab==='ausweise') renderAuPreview(); else if(activeTab==='schilder') renderSchilder(); else renderDrehplan();
     if(boardOpen) renderBoard();
+  }
+
+  function syncBackInputs(){
+    const set = (id, value) => { const el=$(id); if(el && document.activeElement!==el) el.value=value; };
+    const b=DB.back;
+    set('backKicker', b.kicker);
+    set('backTitle', b.title);
+    set('backSubtitle', b.subtitle);
+    set('backQrLabel', b.qrLabel);
+    set('backQrHint', b.qrHint);
+    set('backFooter', b.footer);
+    set('backSchedule', rowsText(b.schedule, ['time','label']));
+    set('backRooms', rowsText(b.rooms, ['label','value']));
+    set('backContacts', rowsText(b.contacts, ['label','value']));
+  }
+  function saveBackFromInputs(){
+    DB.back = normBack({
+      kicker: $('backKicker') ? $('backKicker').value : DB.back.kicker,
+      title: $('backTitle') ? $('backTitle').value : DB.back.title,
+      subtitle: $('backSubtitle') ? $('backSubtitle').value : DB.back.subtitle,
+      qrLabel: $('backQrLabel') ? $('backQrLabel').value : DB.back.qrLabel,
+      qrHint: $('backQrHint') ? $('backQrHint').value : DB.back.qrHint,
+      footer: $('backFooter') ? $('backFooter').value : DB.back.footer,
+      school: DB.back.school,
+      schedule: parseRows($('backSchedule') ? $('backSchedule').value : '', ['time','label']),
+      rooms: parseRows($('backRooms') ? $('backRooms').value : '', ['label','value']),
+      contacts: parseRows($('backContacts') ? $('backContacts').value : '', ['label','value']),
+    });
+    Store.saveBack();
+    if(activeTab==='ausweise') renderAuPreview();
   }
 
   /* ===================== AUSWEIS card ===================== */
@@ -598,8 +743,54 @@
   function auUpdateSel(){ auTbody().querySelectorAll('tr[data-id]').forEach(tr=>tr.classList.toggle('sel',tr.getAttribute('data-id')===AU.selectedId)); }
   function auSelect(id){ if(AU.selectedId===id) return; AU.selectedId=id; auUpdateSel(); renderAuPreview(); }
 
-  function renderAuPreview(){ const i=pIdx(AU.selectedId); const wrap=$('auPreviewWrap'); if(i<0){wrap.style.visibility='hidden';return;} wrap.style.visibility='visible'; $('auPreviewCard').innerHTML=auCardHTML(DB.people[i],pad(i+1)); fitAuPreview(); }
-  function fitAuPreview(){ const h=$('auPreviewCard'); const inner=h.firstElementChild; if(!inner) return; const avail=($('auPreviewPane').clientWidth||window.innerWidth)-44; const s=Math.min(1,avail/520); inner.style.transformOrigin='top left'; inner.style.transform='scale('+s+')'; h.style.width=(520*s)+'px'; h.style.height=(328*s)+'px'; }
+  function auBackCardHTML(){
+    const b=DB.back;
+    const scheduleHtml=(b.schedule||[]).map((row)=>{
+      const strong=/Drehbeginn|Wrap|Call/i.test(row.label||'') || /09:30|17:30/i.test(row.time||'');
+      return `<div style="display:flex;gap:10px;align-items:flex-start;"><span style="font:600 11.5px 'IBM Plex Mono',monospace;color:${strong?'oklch(0.78 0.12 155)':'#c9cace'};flex:none;width:42px;font-variant-numeric:tabular-nums;">${esc(row.time||'')}</span><span style="font:${strong?'600':'400'} 11px 'IBM Plex Mono',monospace;color:${strong?'#e7e7e4':'#9a9ca3'};line-height:1.2;">${esc(row.label||'')}</span></div>`;
+    }).join('');
+    const roomsHtml=(b.rooms||[]).map((row)=>{
+      const strong=/Erste Hilfe|Notruf/i.test(row.label||'');
+      return `<div style="display:flex;justify-content:space-between;gap:10px;"><span style="font:${strong?'500':'400'} 11px 'IBM Plex Mono',monospace;color:${strong?'oklch(0.74 0.14 25)':'#9a9ca3'};">${esc(row.label||'')}</span><span style="font:600 11px 'IBM Plex Mono',monospace;color:${strong?'oklch(0.74 0.14 25)':'#e7e7e4'};flex:none;">${esc(row.value||'')}</span></div>`;
+    }).join('');
+    const contactsHtml=(b.contacts||[]).map((row)=>{
+      const strong=/Notruf/i.test(row.label||'');
+      return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;"><span style="font:400 11px 'IBM Plex Mono',monospace;color:#9a9ca3;">${esc(row.label||'')}</span><span style="font:${strong?'700':'600'} ${strong?'18':'11'}px 'IBM Plex Mono',monospace;color:${strong?'oklch(0.74 0.16 25)':'#e7e7e4'};flex:none;">${esc(row.value||'')}</span></div>`;
+    }).join('');
+    return `
+    <div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:#1b1d21;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+      <img src="assets/school-emblem-white.png" alt="" aria-hidden="true" style="position:absolute;right:-30px;top:50%;transform:translateY(-50%);width:236px;height:236px;opacity:.05;pointer-events:none;z-index:0;">
+      <div style="position:relative;z-index:1;flex:none;height:40px;background:#15161a;border-bottom:1px solid #2a2c31;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="width:9px;height:9px;background:oklch(0.72 0.15 155);transform:rotate(45deg);display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#cfd0d4;">${esc(b.kicker)}</span></div>
+        <div style="display:flex;align-items:center;gap:9px;"><div style="text-align:right;"><div style="font:600 9px 'IBM Plex Mono',monospace;color:#cfd0d4;letter-spacing:.1em;line-height:1.1;">${esc(DB.filmTitle)}</div><div style="font:500 7.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.14em;margin-top:1px;">${esc(b.school)}</div></div><img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:30px;height:30px;display:block;"></div>
+      </div>
+      <div style="position:relative;z-index:1;flex:1;display:grid;grid-template-columns:1.2fr 0.82fr 1.12fr;min-height:0;">
+        <div style="padding:14px 16px;border-right:1px solid #2a2c31;display:flex;flex-direction:column;">
+          <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.72 0.13 155);margin-bottom:13px;">TAGESABLAUF</div>
+          <div style="display:flex;flex-direction:column;gap:9px;">${scheduleHtml}</div>
+        </div>
+        <div style="padding:14px 16px;border-right:1px solid #2a2c31;display:flex;flex-direction:column;">
+          <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.72 0.13 155);margin-bottom:13px;">WICHTIGE RÄUME</div>
+          <div style="display:flex;flex-direction:column;gap:11px;">${roomsHtml}</div>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;">
+          <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.74 0.14 25);margin-bottom:13px;">NOTFALL</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">${contactsHtml}</div>
+          <div style="margin-top:auto;display:flex;align-items:center;gap:13px;padding-top:10px;">
+            <img src="assets/qr-drehplan.svg" alt="${esc(b.qrLabel)}" style="width:92px;height:92px;display:block;border-radius:8px;background:#fff;padding:6px;box-sizing:border-box;flex:none;">
+            <div><div style="font:700 12px 'IBM Plex Mono',monospace;color:#cfd0d4;letter-spacing:.12em;">${esc(b.qrLabel)}</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:#9a9ca3;line-height:1.4;margin-top:4px;">${esc(b.qrHint)}</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="position:relative;z-index:1;flex:none;height:30px;background:#0f1013;border-top:1px solid #2a2c31;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+        <span style="font:400 8.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.06em;">${esc(b.footer)}</span>
+        <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:14px;display:block;opacity:.85;">
+      </div>
+    </div>`;
+  }
+  function fitPreviewCard(container){ const inner=container && container.firstElementChild; if(!inner) return; const avail=($('auPreviewPane').clientWidth||window.innerWidth)-44; const s=Math.min(1,avail/520); inner.style.transformOrigin='top left'; inner.style.transform='scale('+s+')'; container.style.width=(520*s)+'px'; container.style.height=(328*s)+'px'; }
+  function fitAuPreview(){ fitPreviewCard($('auPreviewCard')); fitPreviewCard($('auBackCard')); }
+  function renderAuPreview(){ const i=pIdx(AU.selectedId); const wrap=$('auPreviewWrap'); if(i<0){wrap.style.visibility='hidden';return;} wrap.style.visibility='visible'; $('auPreviewCard').innerHTML=auCardHTML(DB.people[i],pad(i+1)); $('auBackCard').innerHTML=auBackCardHTML(); fitAuPreview(); }
 
   function auUpdate(id,f,v){ const p=pById(id); if(p){ p[f]=v; Store.savePeople(); } }
   function auAdd(){ const p=normPerson({name:'Neue Person'}); DB.people.push(p); AU.selectedId=p.id; Store.savePeople(); renderPeople(); renderAuPreview(); const inp=auTbody().querySelector(`.inp[data-id="${p.id}"][data-f="name"]`); if(inp){inp.focus();inp.select();} }
@@ -639,13 +830,19 @@
     $('auPrintAll').addEventListener('click',auPrintAll);
   }
 
-  function auCardBlock(p,i){
+  function auCardBlock(p,i,side){
     const fmt=AU_FORMATS.find(f=>f.key===DB.auFormat)||AU_FORMATS[0];
     const W=fmt.w, sc=(W*3.7795)/520, Hmm=(328*W/520).toFixed(1);
-    return `<div style="display:inline-block;vertical-align:top;width:${W}mm;height:${Hmm}mm;overflow:hidden;border-radius:0;margin:0 5mm 5mm 0;break-inside:avoid;page-break-inside:avoid;"><div style="width:520px;height:328px;transform:scale(${sc.toFixed(4)});transform-origin:top left;">${auCardHTML(p,pad(i+1))}</div></div>`;
+    const card = side==='back' ? auBackCardHTML() : auCardHTML(p,pad(i+1));
+    return `<div style="display:inline-block;vertical-align:top;width:${W}mm;height:${Hmm}mm;overflow:hidden;border-radius:0;margin:0 5mm 5mm 0;break-inside:avoid;page-break-inside:avoid;"><div style="width:520px;height:328px;transform:scale(${sc.toFixed(4)});transform-origin:top left;">${card}</div></div>`;
   }
-  function auPrintAll(){ const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auDisplay().map(p=>auCardBlock(p,pIdx(p.id))).join(''); doPrint(); }
-  function auPrintOne(id){ const i=pIdx(id); if(i<0)return; const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auCardBlock(DB.people[i],i); doPrint(); }
+  function auPageHTML(cards, side){
+    const fmt=AU_FORMATS.find(f=>f.key===DB.auFormat)||AU_FORMATS[0];
+    const W=fmt.w, Hmm=(328*W/520).toFixed(1);
+    return `<div style="page:p_portrait;break-after:page;display:flex;flex-wrap:wrap;gap:6mm;align-content:flex-start;justify-content:flex-start;width:100%;min-height:100%;box-sizing:border-box;padding:0;">${cards.map((p,idx)=>auCardBlock(p,pIdx(p.id),side)).join('')}</div>`;
+  }
+  function auPrintAll(){ const sh=$('printSheet'); sh.style.padding='8mm'; const cards=auDisplay(); const pages=[]; for(let i=0;i<cards.length;i+=6){ const chunk=cards.slice(i,i+6); pages.push(auPageHTML(chunk,'front')); pages.push(auPageHTML(chunk,'back')); } sh.innerHTML=pages.join(''); doPrint(); }
+  function auPrintOne(id){ const i=pIdx(id); if(i<0)return; const sh=$('printSheet'); sh.style.padding='8mm'; const one=[DB.people[i]]; sh.innerHTML=auPageHTML(one,'front')+auPageHTML(one,'back'); doPrint(); }
 
   /* ===================== SCHILD rendering ===================== */
   function dims(or){ return or==='L'?{w:1123,h:794,bandH:84,heroFont:104}:{w:794,h:1123,bandH:92,heroFont:92}; }
@@ -1112,8 +1309,13 @@
     $('filmTitle').value=DB.filmTitle;
     AU.selectedId=DB.people[0]?DB.people[0].id:null;
     SC.selectedId=DB.signs[0]?DB.signs[0].id:null;
+    syncBackInputs();
 
     $('filmTitle').addEventListener('input',(e)=>{ DB.filmTitle=e.target.value; Store.saveFilm(); if(activeTab==='ausweise') renderAuPreview(); else renderSignPreview(); });
+    ['backKicker','backTitle','backSubtitle','backQrLabel','backQrHint','backFooter','backSchedule','backRooms','backContacts'].forEach((id)=>{
+      const el=$(id);
+      if(el) el.addEventListener('input',saveBackFromInputs);
+    });
     document.querySelectorAll('#tabs .tab').forEach(b=>b.addEventListener('click',()=>switchTab(b.getAttribute('data-tab'))));
     window.addEventListener('resize',()=>{ if(activeTab==='ausweise') fitAuPreview(); else if(activeTab==='schilder') renderSignPreview(); if(boardOpen) fitBoard(); });
     window.addEventListener('orientationchange',()=>{ if(activeTab==='ausweise') fitAuPreview(); else if(activeTab==='schilder') renderSignPreview(); if(boardOpen) fitBoard(); });
