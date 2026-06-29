@@ -570,23 +570,40 @@
   }
 
   // Shared back side (same for everyone), editable globally
+  // Department leads, auto-derived from the HEAD badge — in fixed department order.
+  function deptHeads(){
+    return Object.keys(DEPTS).map(code=>{
+      const names=(DB.people||[]).filter(p=>p.head && p.dept===code && !p.guest).map(p=>(p.name||'').trim()).filter(Boolean);
+      return names.length ? { code, name:DEPTS[code].name, color:DEPTS[code].color, people:names.join(', ') } : null;
+    }).filter(Boolean);
+  }
   function backCardHTML(){
     const b=DB.back;
-    const sched=(b.schedule||[]).map(r=>`<div style="display:flex;gap:9px;align-items:baseline;"><span style="font:600 10.5px 'IBM Plex Mono',monospace;color:${r.hot?'oklch(0.78 0.12 155)':'#c9cace'};flex:none;width:38px;">${esc(r.a)}</span><span style="font:${r.hot?'600':'400'} 10px 'IBM Plex Mono',monospace;color:${r.hot?'#e7e7e4':'#9a9ca3'};line-height:1.15;">${esc(r.b)}</span></div>`).join('');
+    const sched=(b.schedule||[]).map(r=>`<div style="display:flex;gap:9px;align-items:baseline;"><span style="font:600 10.5px 'IBM Plex Mono',monospace;color:${r.hot?'oklch(0.78 0.12 155)':'#c9cace'};flex:none;width:34px;">${esc(r.a)}</span><span style="font:${r.hot?'600':'400'} 10px 'IBM Plex Mono',monospace;color:${r.hot?'#e7e7e4':'#9a9ca3'};line-height:1.15;">${esc(r.b)}</span></div>`).join('');
     const rooms=(b.rooms||[]).map(r=>`<div style="display:flex;justify-content:space-between;gap:9px;"><span style="font:400 10px 'IBM Plex Mono',monospace;color:${r.hot?'oklch(0.74 0.14 25)':'#9a9ca3'};line-height:1.15;">${esc(r.a)}</span><span style="font:600 10px 'IBM Plex Mono',monospace;color:${r.hot?'oklch(0.74 0.14 25)':'#e7e7e4'};flex:none;">${esc(r.b)}</span></div>`).join('');
     const emer=(b.emergency||[]).map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:9px;"><span style="font:400 10px 'IBM Plex Mono',monospace;color:#9a9ca3;">${esc(r.a)}</span><span style="font:${r.hot?'700':'600'} ${r.hot?'15px':'10px'} 'IBM Plex Mono',monospace;color:${r.hot?'oklch(0.74 0.16 25)':'#e7e7e4'};flex:none;">${esc(r.b)}</span></div>`).join('');
+    // Department leads — derived automatically from who carries the HEAD badge.
+    const heads=deptHeads();
+    const headsHTML = heads.length
+      ? heads.map(h=>`<div style="display:flex;gap:7px;align-items:baseline;min-width:0;"><span style="font:700 8px 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:${h.color};flex:none;">${nameUpper(h.name)}</span><span style="font:500 9.5px 'IBM Plex Mono',monospace;color:#d7d8dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${esc(h.people)}</span></div>`).join('')
+      : `<div style="font:400 9px 'IBM Plex Mono',monospace;color:#7b7d83;line-height:1.3;">Noch keine Leitung markiert<br>(HEAD-Badge vergeben)</div>`;
     return `<div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:#1b1d21;display:flex;flex-direction:column;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
       <img src="assets/school-emblem-white.png" alt="" aria-hidden="true" style="position:absolute;right:-30px;top:50%;transform:translateY(-50%);width:236px;height:236px;opacity:.05;pointer-events:none;z-index:0;">
       <div style="position:relative;z-index:1;flex:none;height:40px;background:#15161a;border-bottom:1px solid #2a2c31;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
         <div style="display:flex;align-items:center;gap:8px;"><span style="width:9px;height:9px;background:${ACC};transform:rotate(45deg);display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#cfd0d4;">DREHTAG · ABLAUF &amp; INFO</span></div>
         <div style="display:flex;align-items:center;gap:9px;"><div style="text-align:right;"><div style="font:600 9px 'IBM Plex Mono',monospace;color:#cfd0d4;letter-spacing:.1em;line-height:1.1;text-transform:uppercase;">${esc(DB.filmTitle)}</div><div style="font:500 7.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.14em;margin-top:1px;">HEINRICH-HERTZ-GYMNASIUM</div></div><img src="assets/school-emblem-white.png" alt="HHG" style="width:30px;height:30px;display:block;"></div>
       </div>
-      <div style="position:relative;z-index:1;flex:1;display:grid;grid-template-columns:1.2fr 0.82fr 1.12fr;min-height:0;">
+      <div style="position:relative;z-index:1;flex:1;display:grid;grid-template-columns:1.12fr 1.04fr 0.84fr;min-height:0;">
         <div style="padding:11px 14px;border-right:1px solid #2a2c31;display:flex;flex-direction:column;overflow:hidden;min-height:0;"><div style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.72 0.13 155);margin-bottom:9px;flex:none;">TAGESABLAUF</div><div style="display:flex;flex-direction:column;gap:6px;min-height:0;">${sched}</div></div>
         <div style="padding:11px 14px;border-right:1px solid #2a2c31;display:flex;flex-direction:column;overflow:hidden;min-height:0;"><div style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.72 0.13 155);margin-bottom:9px;flex:none;">WICHTIGE RÄUME</div><div style="display:flex;flex-direction:column;gap:7px;min-height:0;">${rooms}</div></div>
-        <div style="padding:11px 14px;display:flex;flex-direction:column;overflow:hidden;min-height:0;"><div style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.74 0.14 25);margin-bottom:9px;flex:none;">NOTFALL</div><div style="display:flex;flex-direction:column;gap:7px;flex:1 1 0;min-height:0;overflow:hidden;">${emer}</div>
-          <div style="display:flex;align-items:center;gap:11px;padding-top:9px;flex:none;"><img src="assets/qr-board.svg" alt="QR Live-Board" style="width:76px;height:76px;display:block;border-radius:7px;background:#fff;padding:5px;box-sizing:border-box;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;"><div><div style="font:700 11px 'IBM Plex Mono',monospace;color:#cfd0d4;letter-spacing:.12em;">LIVE-BOARD</div><div style="font:400 9px 'IBM Plex Mono',monospace;color:#9a9ca3;line-height:1.35;margin-top:3px;">Scan für den<br>aktuellen Stand</div></div></div>
+        <div style="padding:11px 14px;display:flex;flex-direction:column;overflow:hidden;min-height:0;"><div style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.74 0.14 25);margin-bottom:9px;flex:none;">NOTFALL</div><div style="display:flex;flex-direction:column;gap:7px;flex:1 1 0;min-height:0;overflow:hidden;">${emer}</div></div>
+      </div>
+      <div style="position:relative;z-index:1;flex:none;display:flex;gap:14px;padding:9px 16px;background:#16171b;border-top:1px solid #2a2c31;">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.72 0.13 155);margin-bottom:7px;">DEPARTMENT-LEITUNG</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;min-width:0;">${headsHTML}</div>
         </div>
+        <div style="flex:none;display:flex;align-items:center;gap:10px;border-left:1px solid #2a2c31;padding-left:14px;"><img src="assets/qr-board.svg" alt="QR Live-Board" style="width:58px;height:58px;display:block;border-radius:7px;background:#fff;padding:5px;box-sizing:border-box;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;"><div><div style="font:700 10px 'IBM Plex Mono',monospace;color:#cfd0d4;letter-spacing:.12em;">LIVE-BOARD</div><div style="font:400 8.5px 'IBM Plex Mono',monospace;color:#9a9ca3;line-height:1.3;margin-top:3px;">Scan für den<br>aktuellen Stand</div></div></div>
       </div>
       <div style="position:relative;z-index:1;flex:none;height:30px;background:#0f1013;border-top:1px solid #2a2c31;display:flex;align-items:center;justify-content:space-between;padding:0 16px;"><span style="font:400 8.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.06em;">${esc(b.note||'')}</span><img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:14px;display:block;opacity:.85;"></div>
     </div>`;
@@ -670,7 +687,7 @@
     tb.addEventListener('input',onField); tb.addEventListener('change',onField);
     tb.addEventListener('focusin',(e)=>{ const el=e.target.closest('[data-id]'); if(el) auSelect(el.getAttribute('data-id')); });
     tb.addEventListener('click',(e)=>{
-      const mark=e.target.closest('.mark'); if(mark){ const id=mark.getAttribute('data-id'),m=mark.getAttribute('data-mark'); const p=pById(id); if(!p)return; p[m]=!p[m]; Store.savePeople(); mark.setAttribute('style',markStyle(m,p[m])); if(m==='guest'){ const nr=auTbody().querySelector(`.nr[data-id="${id}"]`); if(nr) nr.style.color=p.guest?GUEST.color:dept(p.dept).color; } if(id===AU.selectedId)renderAuPreview(); return; }
+      const mark=e.target.closest('.mark'); if(mark){ const id=mark.getAttribute('data-id'),m=mark.getAttribute('data-mark'); const p=pById(id); if(!p)return; p[m]=!p[m]; Store.savePeople(); mark.setAttribute('style',markStyle(m,p[m])); if(m==='guest'){ const nr=auTbody().querySelector(`.nr[data-id="${id}"]`); if(nr) nr.style.color=p.guest?GUEST.color:dept(p.dept).color; } if(id===AU.selectedId || AU.side==='back')renderAuPreview(); return; }
       const arr=e.target.closest('.arr'); if(arr){ auMoveBy(arr.getAttribute('data-id'),arr.getAttribute('data-dir')==='up'?-1:1); return; }
       const act=e.target.closest('[data-au-act]'); if(act){ const id=act.getAttribute('data-id'),a=act.getAttribute('data-au-act');
         if(a==='preview'){ auSelect(id); $('auPreviewPane').scrollIntoView({behavior:'smooth',block:'nearest'}); }
@@ -703,8 +720,13 @@
   const BACK_TITLES = { schedule:'Tagesablauf', rooms:'Wichtige Räume', emergency:'Notfall' };
   function backListHTML(key){
     const cols=BACK_COLS[key]; const hotCol = key==='schedule' ? 'oklch(0.72 0.15 155)' : 'oklch(0.6 0.21 25)';
+    const last=(DB.back[key]||[]).length-1;
     const rows=(DB.back[key]||[]).map((r,i)=>`<div style="display:flex;gap:6px;align-items:center;">
-        <input class="inp" data-bk="${key}" data-i="${i}" data-c="a" value="${esc(r.a)}" placeholder="${cols[0]}" style="${key==='schedule'?'width:76px;flex:none;':'flex:1;'}min-width:0;padding:8px 9px;font-size:12px;">
+        <span style="display:flex;flex-direction:column;gap:2px;flex:none;">
+          <span class="act" data-bk-act="up" data-bk="${key}" data-i="${i}" title="Nach oben" style="padding:1px 6px;font-size:9px;line-height:1.1;${i===0?'opacity:.25;pointer-events:none;':''}">▲</span>
+          <span class="act" data-bk-act="down" data-bk="${key}" data-i="${i}" title="Nach unten" style="padding:1px 6px;font-size:9px;line-height:1.1;${i===last?'opacity:.25;pointer-events:none;':''}">▼</span>
+        </span>
+        <input class="inp" data-bk="${key}" data-i="${i}" data-c="a" value="${esc(r.a)}" placeholder="${cols[0]}" style="${key==='schedule'?'width:72px;flex:none;':'flex:1;'}min-width:0;padding:8px 9px;font-size:12px;">
         <input class="inp" data-bk="${key}" data-i="${i}" data-c="b" value="${esc(r.b)}" placeholder="${cols[1]}" style="flex:1;min-width:0;padding:8px 9px;font-size:12px;">
         <span class="act" data-bk-act="hot" data-bk="${key}" data-i="${i}" title="Hervorheben" style="padding:7px 9px;${r.hot?`background:${hotCol};border-color:${hotCol};color:#0c0d10;`:''}">★</span>
         <span class="act del" data-bk-act="del" data-bk="${key}" data-i="${i}" style="padding:7px 9px;">✕</span>
@@ -730,7 +752,11 @@
     v.addEventListener('click',(e)=>{
       const a=e.target.closest('[data-bk-act]'); if(!a) return; const act=a.getAttribute('data-bk-act'), key=a.getAttribute('data-bk');
       if(act==='add'){ DB.back[key]=[...(DB.back[key]||[]),{a:'',b:''}]; }
-      else { const i=+a.getAttribute('data-i'); if(act==='del') DB.back[key]=(DB.back[key]||[]).filter((r,idx)=>idx!==i); else if(act==='hot'){ const r=DB.back[key][i]; if(r) r.hot=!r.hot; } }
+      else { const i=+a.getAttribute('data-i'); const arr=DB.back[key]||[];
+        if(act==='del') DB.back[key]=arr.filter((r,idx)=>idx!==i);
+        else if(act==='hot'){ const r=arr[i]; if(r) r.hot=!r.hot; }
+        else if(act==='up'||act==='down'){ const j=act==='up'?i-1:i+1; if(j>=0&&j<arr.length){ const t=arr[i]; arr[i]=arr[j]; arr[j]=t; } }
+      }
       Store.saveBack(); renderBackEditor(); renderAuPreview();
     });
   }
