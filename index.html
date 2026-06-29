@@ -169,8 +169,9 @@
         <label style="display:flex;align-items:center;gap:7px;"><span style="font:600 9px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a8d94;text-transform:uppercase;">Format</span><select id="auFormat" class="sel" style="width:auto;padding:8px 10px;cursor:pointer;"></select></label>
         <div id="auStyleToggle" class="act" role="button" tabindex="0" style="padding:8px 14px;">Design: Dunkel</div>
         <div id="auSort" class="act" role="button" tabindex="0" style="padding:8px 14px;">Nach Department sortieren</div>
+        <div id="auBackEdit" class="act" role="button" tabindex="0" style="padding:8px 14px;">Rückseite bearbeiten</div>
         <div id="auAdd" class="act" role="button" tabindex="0" style="padding:8px 14px;font-weight:700;">+ NEU</div>
-        <div id="auPrintAll" class="act primary" role="button" tabindex="0" style="padding:8px 14px;"><span style="width:7px;height:7px;background:#15161a;transform:rotate(45deg);display:block;margin-right:7px;"></span>ALLE DRUCKEN</div>
+        <div id="auPrintAll" class="act primary" role="button" tabindex="0" style="padding:8px 14px;"><span style="width:7px;height:7px;background:#15161a;transform:rotate(45deg);display:block;margin-right:7px;"></span>DOPPELSEITIG DRUCKEN</div>
       </div>
     </div>
     <div class="splitMain" style="flex:1;display:flex;min-height:0;">
@@ -187,10 +188,14 @@
         </div>
       </div>
       <div id="auPreviewPane" class="previewPane" style="width:564px;flex:none;border-left:1px solid #2a2c31;background:#101114;padding:32px 22px;display:flex;align-items:flex-start;justify-content:center;position:sticky;top:0;align-self:flex-start;">
-        <div id="auPreviewWrap" style="display:flex;flex-direction:column;gap:16px;align-items:center;">
-          <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Live-Vorschau · 85 × 54 mm</div>
+        <div id="auPreviewWrap" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+          <div style="display:flex;gap:4px;background:#1a1c20;border:1px solid #34373e;border-radius:9px;padding:3px;">
+            <div id="auSideFront" class="act" data-side="front" style="border:none;padding:7px 14px;">Vorderseite</div>
+            <div id="auSideBack" class="act" data-side="back" style="border:none;padding:7px 14px;">Rückseite</div>
+          </div>
+          <div id="auPvLabel" style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#5a5d64;text-transform:uppercase;">Vorderseite · 85 × 54 mm</div>
           <div id="auPreviewCard"></div>
-          <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:420px;text-align:center;line-height:1.5;">Dies ist die zentrale Personal-Datenbank. Sie speist die Ausweise <b>und</b> die Namensliste im Set-Schilder-Tab.</div>
+          <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#5a5d64;max-width:420px;text-align:center;line-height:1.5;">Zentrale Personal-Datenbank. Die Rückseite ist für alle gleich – über „Rückseite bearbeiten“ global änderbar. „Alle drucken“ druckt doppelseitig (Vorder-/Rückseite).</div>
         </div>
       </div>
     </div>
@@ -238,6 +243,15 @@
   <div style="position:fixed;bottom:16px;right:16px;display:flex;gap:8px;z-index:61;">
     <div id="boardFull" title="Vollbild" style="cursor:pointer;width:38px;height:38px;border-radius:9px;background:rgba(28,29,33,.72);border:1px solid #34373e;backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:#9a9ca3;"><span style="width:15px;height:15px;border:2px solid currentColor;border-radius:3px;display:block;"></span></div>
     <div id="boardClose" style="cursor:pointer;height:38px;padding:0 14px;border-radius:9px;background:rgba(28,29,33,.72);border:1px solid #34373e;backdrop-filter:blur(6px);display:flex;align-items:center;gap:8px;color:#c9cace;font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.1em;">✕ SCHLIESSEN</div>
+  </div>
+</div>
+
+<div id="backEditor" style="display:none;position:fixed;inset:0;z-index:55;font-family:'IBM Plex Mono',monospace;">
+  <div id="backEditorBg" style="position:absolute;inset:0;background:rgba(8,9,12,.6);"></div>
+  <div style="position:absolute;right:0;top:0;height:100%;width:460px;max-width:100%;background:#15161a;border-left:1px solid #2a2c31;overflow-y:auto;padding:24px 24px 60px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><span style="font:700 20px 'Saira Condensed',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#f4f3ef;">Rückseite bearbeiten</span><div id="backClose" class="act" style="padding:6px 9px;">✕</div></div>
+    <div style="font:500 11px 'IBM Plex Mono',monospace;color:#8a8d94;line-height:1.5;margin-bottom:18px;">Gilt einheitlich für alle Ausweise und wird global gespeichert. ★ = hervorheben.</div>
+    <div id="backEditorBody"></div>
   </div>
 </div>
 
@@ -308,8 +322,14 @@
 
   const FILM_DEFAULT = 'The Massacre of Love';
   const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null };
+  const BACK_DEFAULTS = {
+    schedule:[{a:'08:00',b:'Treffpunkt & Check-in'},{a:'08:15',b:'Maske & Kostüm'},{a:'09:00',b:'Setbau / Einleuchten'},{a:'09:30',b:'Drehbeginn · Call',hot:true},{a:'13:00',b:'Mittagspause · Catering'},{a:'13:45',b:'Weiter am Set'},{a:'17:30',b:'Wrap · Sichtung',hot:true},{a:'18:00',b:'Set-Rückbau'}],
+    rooms:[{a:'Basis / Crew',b:'R. 014'},{a:'Maske & Kostüm',b:'R. 011'},{a:'Catering',b:'Mensa'},{a:'Technik-Lager',b:'R. 109'},{a:'Cast-Aufenthalt',b:'Aula'},{a:'Set heute',b:'Trakt B'},{a:'Erste Hilfe',b:'Sekret. EG',hot:true}],
+    emergency:[{a:'Notruf',b:'112',hot:true},{a:'Aufnahmeltg.',b:'0176 22…'},{a:'1. AD / Set',b:'0176 33…'},{a:'Aufsicht',b:'Hr. Adler'}],
+    note:'Bei Fund zurück an Aufnahmeleitung · R. 014',
+  };
   const ACC = 'oklch(0.72 0.15 155)'; // board accent green
-  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A', auStyle: 'dark', auFormat: 'cr80', board: {...BOARD_DEFAULTS} };
+  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A', auStyle: 'dark', auFormat: 'cr80', board: {...BOARD_DEFAULTS}, back: JSON.parse(JSON.stringify(BACK_DEFAULTS)) };
   const num = (v)=>{ const n=parseInt(v,10); return isNaN(n)?0:n; };
   function todayKey(){ const d=new Date(); return isoOf(d); }
   const SCENE_NAMES = ['Vorspann · Establishing','Treppenhaus Nacht','Klassenzimmer leer','Pausenhof Tag','Spind-Konfrontation','Flur Verfolgung','Toilette Versteck','Aula Versammlung','Bibliothek Fund','Keller Entdeckung','Dachboden Geständnis','Parkplatz Abschied','Bushaltestelle Regen','Wohnzimmer Familie','Küche Streit','Schlafzimmer Brief','Wald Flucht','See Ufer','Brücke Treffen','Café Gespräch','Sporthalle Duell','Umkleide danach','Direktorat Verhör','Lehrerzimmer','Treppe Sturz','Krankenstation','Garten Erinnerung','Garage Plan','Straße Nacht','Bahnhof Ankunft','Zug Abteil','Hotel Lobby','Zimmer Enthüllung','Telefonzelle','Markt Gedränge','Kirche Stille','Friedhof Trauer','Strand Sonnenaufgang','Showdown Finale','Abspann · Wrap'];
@@ -322,7 +342,7 @@
   /* ===================== storage layer ===================== */
   // Single local "database". Swap these for a cloud adapter (e.g. Supabase REST)
   // to get true cross-device storage — same shape, just async.
-  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', auformat:'xy_au_format_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1' };
+  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', auformat:'xy_au_format_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1', back:'xy_back_v1' };
   const uid = (p) => p + Math.random().toString(36).slice(2, 9);
 
   function normPerson(p){ return { id:p.id||uid('p'), name:p.name||'', dept:DEPTS[p.dept]?p.dept:'TE', role:p.role||'', filmRole:p.filmRole||'', head:!!p.head, media:!!p.media, legacy:!!p.legacy, lehrer:!!p.lehrer, noimg:!!p.noimg, guest:!!p.guest }; }
@@ -359,7 +379,8 @@
     austyle(){ try{ localStorage.setItem(K.austyle, DB.auStyle); }catch(e){} },
     auformat(){ try{ localStorage.setItem(K.auformat, DB.auFormat); }catch(e){} },
     board(){ try{ localStorage.setItem(K.board, JSON.stringify(DB.board)); }catch(e){} },
-    all(){ this.people(); this.signs(); this.film(); this.style(); this.austyle(); this.auformat(); this.board(); },
+    back(){ try{ localStorage.setItem(K.back, JSON.stringify(DB.back)); }catch(e){} },
+    all(){ this.people(); this.signs(); this.film(); this.style(); this.austyle(); this.auformat(); this.board(); this.back(); },
   };
 
   // ---- client-side encryption (password protects the cloud data) ----
@@ -391,7 +412,7 @@
   const SUPA_H = { 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY, 'Content-Type':'application/json' };
   const Cloud = {
     enabled:true, lastEdit:0, lastSeen:0, busy:false, timer:null,
-    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle, auStyle:DB.auStyle, auFormat:DB.auFormat, board:DB.board }; },
+    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle, auStyle:DB.auStyle, auFormat:DB.auFormat, board:DB.board, back:DB.back }; },
     status(t,c){ const el=$('cloudStatus'); if(el){ el.textContent=t; el.style.color=c||'#6c6e74'; } },
     schedule(){ this.lastEdit=Date.now(); if(!this.enabled) return; clearTimeout(this.timer); this.timer=setTimeout(()=>this.push(),800); },
     // read the remote row; returns {data, updated_at} (data decrypted) or null
@@ -450,6 +471,8 @@
       let bd=null; try{ bd=JSON.parse(localStorage.getItem(K.board)); if(!bd||typeof bd!=='object') bd=JSON.parse(localStorage.getItem(K.boardOld)); }catch(e){}
       DB.board = {...BOARD_DEFAULTS, ...(bd&&typeof bd==='object'?bd:{})};
       if(!Array.isArray(DB.board.scenes)) DB.board.scenes = makeDefaultScenes();
+      let bk=null; try{ bk=JSON.parse(localStorage.getItem(K.back)); }catch(e){}
+      DB.back = (bk&&typeof bk==='object') ? {...JSON.parse(JSON.stringify(BACK_DEFAULTS)), ...bk} : JSON.parse(JSON.stringify(BACK_DEFAULTS));
     },
     savePeople(){ LS.people(); Cloud.schedule(); },
     saveSigns(){ LS.signs(); Cloud.schedule(); },
@@ -458,6 +481,7 @@
     saveAuStyle(){ LS.austyle(); Cloud.schedule(); },
     saveAuFormat(){ LS.auformat(); Cloud.schedule(); },
     saveBoard(){ LS.board(); Cloud.schedule(); },
+    saveBack(){ LS.back(); Cloud.schedule(); },
   };
 
   // Replace whole DB from a remote snapshot, write-through to the local cache.
@@ -470,6 +494,7 @@
     if(data.auStyle==='dark'||data.auStyle==='light') DB.auStyle=data.auStyle;
     if(typeof data.auFormat==='string' && AU_FORMATS.some(f=>f.key===data.auFormat)) DB.auFormat=data.auFormat;
     if(data.board&&typeof data.board==='object'){ DB.board={...BOARD_DEFAULTS, ...data.board}; if(!Array.isArray(DB.board.scenes)) DB.board.scenes=makeDefaultScenes(); }
+    if(data.back&&typeof data.back==='object'){ DB.back={...JSON.parse(JSON.stringify(BACK_DEFAULTS)), ...data.back}; }
     LS.all();
   }
   // Re-render the active view after a remote change (without clobbering active typing).
@@ -480,29 +505,28 @@
     renderPeople();
     if(activeTab==='ausweise') renderAuPreview(); else if(activeTab==='schilder') renderSchilder(); else renderDrehplan();
     if(boardOpen) renderBoard();
+    const be=$('backEditor'); if(be && be.style.display==='block') renderBackEditor();
   }
 
   /* ===================== AUSWEIS card ===================== */
-  function nameSize(name){ const n=(name||'').trim().length; if(n<=12)return 56; if(n<=16)return 48; if(n<=20)return 40; if(n<=24)return 34; if(n<=29)return 28; if(n<=36)return 23; return 19; }
+  function nameSize(name){ const n=(name||'').trim().length; if(n<=12)return 60; if(n<=16)return 50; if(n<=20)return 42; if(n<=25)return 35; if(n<=31)return 29; if(n<=38)return 23; return 19; }
   function auCardHTML(p, no){
     if(p.guest){
       const gl=DB.auStyle==='light'; const cardBg=gl?'#ffffff':'#26282d'; const grey='#6c6e74'; const gastCol=gl?'#15161a':'#ffffff'; const gShadow=gl?'':'text-shadow:0 1px 8px rgba(0,0,0,.35);';
-      const gEmblem=gl?'':`<img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:60px;height:60px;display:block;flex:none;opacity:.95;">`;
-      const gRight=`<div style="display:flex;flex-direction:column;align-items:flex-end;gap:9px;flex:none;"><div style="background:#fff;padding:5px;border-radius:7px;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;"><img src="assets/qr-board.svg" alt="Live-Board scannen" style="width:58px;height:58px;display:block;"></div>${gEmblem}</div>`;
+      const gEmblem=gl?'':`<div style="flex:none;align-self:center;"><img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:104px;height:104px;display:block;opacity:.95;"></div>`;
       return `
       <div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:${cardBg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">
         <div style="height:94px;background:${grey};"></div>
         <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
-        <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
+        <div style="position:absolute;left:0;right:0;top:94px;bottom:48px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:18px;">
           <div style="min-width:0;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;"><span style="width:7px;height:7px;background:${grey};display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:${gl?'#6c6e74':'#a7a9af'};text-transform:uppercase;">${esc(DB.filmTitle)}</span></div>
-            <div style="font:700 56px 'Saira Condensed',sans-serif;color:${gastCol};line-height:.86;letter-spacing:.02em;${gShadow}">GAST</div>
-            <div style="width:58px;height:4px;background:${grey};margin-top:11px;"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="width:7px;height:7px;background:${grey};display:block;"></span><span style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:${gl?'#6c6e74':'#a7a9af'};text-transform:uppercase;">${esc(DB.filmTitle)}</span></div>
+            <div style="font:700 60px 'Saira Condensed',sans-serif;color:${gastCol};line-height:.88;letter-spacing:.02em;${gShadow}">GAST</div>
           </div>
-          ${gRight}
+          ${gEmblem}
         </div>
-        <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid ${grey};display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
-          <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:26px;display:block;">
+        <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid ${grey};display:flex;align-items:center;justify-content:space-between;padding:0 22px;">
+          <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:24px;display:block;">
         </div>
       </div>`;
     }
@@ -521,9 +545,7 @@
     const nameShadow = light?'':'text-shadow:0 1px 8px rgba(0,0,0,.35);';
     const roleCol = light?d.color:d.role;
     const frLabel = light?'#9a9ca3':'#7b7d83';
-    const emblem = light?'':`<img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:60px;height:60px;display:block;flex:none;opacity:.95;">`;
-    const qrBox = `<div style="background:#fff;padding:5px;border-radius:7px;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;"><img src="assets/qr-board.svg" alt="Live-Board scannen" style="width:58px;height:58px;display:block;"></div>`;
-    const rightCol = `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:9px;flex:none;">${qrBox}${emblem}</div>`;
+    const emblem = light?'':`<div style="flex:none;align-self:center;"><img src="assets/school-emblem-white.png" alt="Heinrich-Hertz-Gymnasium" style="width:104px;height:104px;display:block;opacity:.95;"></div>`;
     return `
     <div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:${cardBg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">
       <div style="height:94px;background:${d.color};display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:0 24px 14px;">
@@ -531,25 +553,47 @@
         <div style="display:flex;align-items:flex-end;justify-content:flex-end;flex-wrap:wrap;gap:8px;flex:1;min-width:0;">${badges}</div>
       </div>
       <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:78px;height:9px;background:#000;opacity:.45;border-radius:5px;z-index:6;"></div>
-      <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
+      <div style="position:absolute;left:0;right:0;top:94px;bottom:48px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:18px;">
         <div style="min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:${filmCol};text-transform:uppercase;">${esc(DB.filmTitle)}</span></div>
-          <div style="font:700 ${nameSize(p.name)}px 'Saira Condensed',sans-serif;color:${nameCol};line-height:.86;letter-spacing:.005em;overflow-wrap:anywhere;word-break:break-word;${nameShadow}">${nameUpper(p.name)}</div>
-          <div style="width:58px;height:4px;background:${d.color};margin-top:11px;"></div>
-          <div style="font:500 15px 'IBM Plex Mono',monospace;color:${roleCol};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
-          ${hasFilmRole?`<div style="font:500 9.5px 'IBM Plex Mono',monospace;color:${frLabel};letter-spacing:.16em;margin-top:14px;">ROLLE IM FILM</div><div style="font:600 23px 'Saira Condensed',sans-serif;color:${roleCol};margin-top:2px;letter-spacing:.02em;overflow-wrap:anywhere;">${nameUpper(p.filmRole)}</div>`:''}
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="width:7px;height:7px;background:${d.color};display:block;"></span><span style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:${filmCol};text-transform:uppercase;">${esc(DB.filmTitle)}</span></div>
+          <div style="font:700 ${nameSize(p.name)}px 'Saira Condensed',sans-serif;color:${nameCol};line-height:.88;letter-spacing:.005em;overflow-wrap:anywhere;word-break:break-word;${nameShadow}">${nameUpper(p.name)}</div>
+          <div style="font:500 16px 'IBM Plex Mono',monospace;color:${roleCol};margin-top:11px;letter-spacing:.01em;">${esc(p.role)}</div>
+          ${hasFilmRole?`<div style="font:500 9.5px 'IBM Plex Mono',monospace;color:${frLabel};letter-spacing:.16em;margin-top:12px;">ROLLE IM FILM</div><div style="font:600 23px 'Saira Condensed',sans-serif;color:${roleCol};margin-top:2px;letter-spacing:.02em;overflow-wrap:anywhere;">${nameUpper(p.filmRole)}</div>`:''}
         </div>
-        ${rightCol}
+        ${emblem}
       </div>
-      <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid ${d.color};display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
-        <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:26px;display:block;">
-        <span style="font:600 11px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.14em;">NO. ${esc(no)}</span>
+      <div style="position:absolute;left:0;right:0;bottom:0;height:48px;background:#1b1d21;border-top:2px solid ${d.color};display:flex;align-items:center;justify-content:space-between;padding:0 22px;">
+        <img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:24px;display:block;">
+        <span style="font:600 10px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.12em;">NO. ${esc(no)}</span>
       </div>
     </div>`;
   }
 
+  // Shared back side (same for everyone), editable globally
+  function backCardHTML(){
+    const b=DB.back;
+    const sched=(b.schedule||[]).map(r=>`<div style="display:flex;gap:10px;"><span style="font:600 11.5px 'IBM Plex Mono',monospace;color:${r.hot?'oklch(0.78 0.12 155)':'#c9cace'};flex:none;width:42px;">${esc(r.a)}</span><span style="font:${r.hot?'600':'400'} 11px 'IBM Plex Mono',monospace;color:${r.hot?'#e7e7e4':'#9a9ca3'};line-height:1.2;">${esc(r.b)}</span></div>`).join('');
+    const rooms=(b.rooms||[]).map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;"><span style="font:400 11px 'IBM Plex Mono',monospace;color:${r.hot?'oklch(0.74 0.14 25)':'#9a9ca3'};">${esc(r.a)}</span><span style="font:600 11px 'IBM Plex Mono',monospace;color:${r.hot?'oklch(0.74 0.14 25)':'#e7e7e4'};flex:none;">${esc(r.b)}</span></div>`).join('');
+    const emer=(b.emergency||[]).map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><span style="font:400 11px 'IBM Plex Mono',monospace;color:#9a9ca3;">${esc(r.a)}</span><span style="font:${r.hot?'700':'600'} ${r.hot?'18px':'11px'} 'IBM Plex Mono',monospace;color:${r.hot?'oklch(0.74 0.16 25)':'#e7e7e4'};flex:none;">${esc(r.b)}</span></div>`).join('');
+    return `<div style="position:relative;width:520px;height:328px;border-radius:0;overflow:hidden;background:#1b1d21;display:flex;flex-direction:column;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+      <img src="assets/school-emblem-white.png" alt="" aria-hidden="true" style="position:absolute;right:-30px;top:50%;transform:translateY(-50%);width:236px;height:236px;opacity:.05;pointer-events:none;z-index:0;">
+      <div style="position:relative;z-index:1;flex:none;height:40px;background:#15161a;border-bottom:1px solid #2a2c31;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="width:9px;height:9px;background:${ACC};transform:rotate(45deg);display:block;"></span><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#cfd0d4;">DREHTAG · ABLAUF &amp; INFO</span></div>
+        <div style="display:flex;align-items:center;gap:9px;"><div style="text-align:right;"><div style="font:600 9px 'IBM Plex Mono',monospace;color:#cfd0d4;letter-spacing:.1em;line-height:1.1;text-transform:uppercase;">${esc(DB.filmTitle)}</div><div style="font:500 7.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.14em;margin-top:1px;">HEINRICH-HERTZ-GYMNASIUM</div></div><img src="assets/school-emblem-white.png" alt="HHG" style="width:30px;height:30px;display:block;"></div>
+      </div>
+      <div style="position:relative;z-index:1;flex:1;display:grid;grid-template-columns:1.2fr 0.82fr 1.12fr;min-height:0;">
+        <div style="padding:14px 16px;border-right:1px solid #2a2c31;display:flex;flex-direction:column;"><div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.72 0.13 155);margin-bottom:13px;">TAGESABLAUF</div><div style="display:flex;flex-direction:column;gap:9px;">${sched}</div></div>
+        <div style="padding:14px 16px;border-right:1px solid #2a2c31;display:flex;flex-direction:column;"><div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.72 0.13 155);margin-bottom:13px;">WICHTIGE RÄUME</div><div style="display:flex;flex-direction:column;gap:11px;">${rooms}</div></div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;"><div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.74 0.14 25);margin-bottom:13px;">NOTFALL</div><div style="display:flex;flex-direction:column;gap:10px;">${emer}</div>
+          <div style="margin-top:auto;display:flex;align-items:center;gap:13px;padding-top:10px;"><img src="assets/qr-board.svg" alt="QR Live-Board" style="width:92px;height:92px;display:block;border-radius:8px;background:#fff;padding:6px;box-sizing:border-box;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;"><div><div style="font:700 12px 'IBM Plex Mono',monospace;color:#cfd0d4;letter-spacing:.12em;">LIVE-BOARD</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:#9a9ca3;line-height:1.4;margin-top:4px;">Scan für den<br>aktuellen Stand</div></div></div>
+        </div>
+      </div>
+      <div style="position:relative;z-index:1;flex:none;height:30px;background:#0f1013;border-top:1px solid #2a2c31;display:flex;align-items:center;justify-content:space-between;padding:0 16px;"><span style="font:400 8.5px 'IBM Plex Mono',monospace;color:#7b7d83;letter-spacing:.06em;">${esc(b.note||'')}</span><img src="assets/xy-pictures-logo.png" alt="XY Pictures" style="height:14px;display:block;opacity:.85;"></div>
+    </div>`;
+  }
+
   /* ===================== AUSWEIS view ===================== */
-  const AU = { selectedId:null, sortByDept:false, dragId:null };
+  const AU = { selectedId:null, sortByDept:false, dragId:null, side:'front' };
   const pIdx = (id) => DB.people.findIndex(p=>p.id===id);
   const pById = (id) => DB.people.find(p=>p.id===id);
 
@@ -598,7 +642,16 @@
   function auUpdateSel(){ auTbody().querySelectorAll('tr[data-id]').forEach(tr=>tr.classList.toggle('sel',tr.getAttribute('data-id')===AU.selectedId)); }
   function auSelect(id){ if(AU.selectedId===id) return; AU.selectedId=id; auUpdateSel(); renderAuPreview(); }
 
-  function renderAuPreview(){ const i=pIdx(AU.selectedId); const wrap=$('auPreviewWrap'); if(i<0){wrap.style.visibility='hidden';return;} wrap.style.visibility='visible'; $('auPreviewCard').innerHTML=auCardHTML(DB.people[i],pad(i+1)); fitAuPreview(); }
+  function renderAuPreview(){
+    const wrap=$('auPreviewWrap'), lbl=$('auPvLabel');
+    const fb=$('auSideFront'), bb=$('auSideBack');
+    if(fb&&bb){ const on='background:#f4f3ef;color:#15161a;', off='background:transparent;color:#9a9ca3;';
+      fb.setAttribute('style','border:none;padding:7px 14px;font-weight:700;'+(AU.side==='front'?on:off));
+      bb.setAttribute('style','border:none;padding:7px 14px;font-weight:700;'+(AU.side==='back'?on:off)); }
+    if(AU.side==='back'){ wrap.style.visibility='visible'; if(lbl) lbl.textContent='Rückseite · für alle gleich'; $('auPreviewCard').innerHTML=backCardHTML(); fitAuPreview(); return; }
+    const i=pIdx(AU.selectedId); if(i<0){ wrap.style.visibility='hidden'; return; }
+    wrap.style.visibility='visible'; if(lbl) lbl.textContent='Vorderseite · 85 × 54 mm'; $('auPreviewCard').innerHTML=auCardHTML(DB.people[i],pad(i+1)); fitAuPreview();
+  }
   function fitAuPreview(){ const h=$('auPreviewCard'); const inner=h.firstElementChild; if(!inner) return; const avail=($('auPreviewPane').clientWidth||window.innerWidth)-44; const s=Math.min(1,avail/520); inner.style.transformOrigin='top left'; inner.style.transform='scale('+s+')'; h.style.width=(520*s)+'px'; h.style.height=(328*s)+'px'; }
 
   function auUpdate(id,f,v){ const p=pById(id); if(p){ p[f]=v; Store.savePeople(); } }
@@ -637,15 +690,72 @@
     $('auFormat').addEventListener('change',(e)=>{ DB.auFormat=e.target.value; Store.saveAuFormat(); });
     $('auAdd').addEventListener('click',auAdd);
     $('auPrintAll').addEventListener('click',auPrintAll);
+    $('auSideFront').addEventListener('click',()=>{ AU.side='front'; renderAuPreview(); });
+    $('auSideBack').addEventListener('click',()=>{ AU.side='back'; renderAuPreview(); });
+    $('auBackEdit').addEventListener('click',openBackEditor);
+    $('backClose').addEventListener('click',closeBackEditor);
+    $('backEditorBg').addEventListener('click',closeBackEditor);
+    wireBackEditor();
   }
 
-  function auCardBlock(p,i){
-    const fmt=AU_FORMATS.find(f=>f.key===DB.auFormat)||AU_FORMATS[0];
-    const W=fmt.w, sc=(W*3.7795)/520, Hmm=(328*W/520).toFixed(1);
-    return `<div style="display:inline-block;vertical-align:top;width:${W}mm;height:${Hmm}mm;overflow:hidden;border-radius:0;margin:0 5mm 5mm 0;break-inside:avoid;page-break-inside:avoid;"><div style="width:520px;height:328px;transform:scale(${sc.toFixed(4)});transform-origin:top left;">${auCardHTML(p,pad(i+1))}</div></div>`;
+  /* ---- Rückseite (global) editor ---- */
+  const BACK_COLS = { schedule:['Zeit','Was'], rooms:['Raum / Ort','Wert'], emergency:['Kontakt','Nummer / Wer'] };
+  const BACK_TITLES = { schedule:'Tagesablauf', rooms:'Wichtige Räume', emergency:'Notfall' };
+  function backListHTML(key){
+    const cols=BACK_COLS[key]; const hotCol = key==='schedule' ? 'oklch(0.72 0.15 155)' : 'oklch(0.6 0.21 25)';
+    const rows=(DB.back[key]||[]).map((r,i)=>`<div style="display:flex;gap:6px;align-items:center;">
+        <input class="inp" data-bk="${key}" data-i="${i}" data-c="a" value="${esc(r.a)}" placeholder="${cols[0]}" style="${key==='schedule'?'width:76px;flex:none;':'flex:1;'}min-width:0;padding:8px 9px;font-size:12px;">
+        <input class="inp" data-bk="${key}" data-i="${i}" data-c="b" value="${esc(r.b)}" placeholder="${cols[1]}" style="flex:1;min-width:0;padding:8px 9px;font-size:12px;">
+        <span class="act" data-bk-act="hot" data-bk="${key}" data-i="${i}" title="Hervorheben" style="padding:7px 9px;${r.hot?`background:${hotCol};border-color:${hotCol};color:#0c0d10;`:''}">★</span>
+        <span class="act del" data-bk-act="del" data-bk="${key}" data-i="${i}" style="padding:7px 9px;">✕</span>
+      </div>`).join('');
+    return `<div style="margin-bottom:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><span class="lbl" style="margin-bottom:0;">${BACK_TITLES[key]}</span><div class="act" data-bk-act="add" data-bk="${key}" style="padding:5px 10px;">+ ZEILE</div></div>
+      <div style="display:flex;flex-direction:column;gap:7px;">${rows}</div>
+    </div>`;
   }
-  function auPrintAll(){ const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auDisplay().map(p=>auCardBlock(p,pIdx(p.id))).join(''); doPrint(); }
-  function auPrintOne(id){ const i=pIdx(id); if(i<0)return; const sh=$('printSheet'); sh.style.padding='8mm'; sh.innerHTML=auCardBlock(DB.people[i],i); doPrint(); }
+  function renderBackEditor(){
+    $('backEditorBody').innerHTML = backListHTML('schedule')+backListHTML('rooms')+backListHTML('emergency')
+      + `<label style="display:block;margin-top:4px;"><span class="lbl">Fußzeile (Hinweis)</span><input class="inp" data-bk-note="1" value="${esc(DB.back.note||'')}"></label>`;
+  }
+  function openBackEditor(){ AU.side='back'; renderAuPreview(); renderBackEditor(); $('backEditor').style.display='block'; }
+  function closeBackEditor(){ $('backEditor').style.display='none'; }
+  function wireBackEditor(){
+    const v=$('backEditor');
+    v.addEventListener('input',(e)=>{
+      const note=e.target.closest('[data-bk-note]'); if(note){ DB.back.note=note.value; Store.saveBack(); renderAuPreview(); return; }
+      const el=e.target.closest('[data-bk]'); if(!el) return; const key=el.getAttribute('data-bk'), i=+el.getAttribute('data-i'), c=el.getAttribute('data-c');
+      if(DB.back[key]&&DB.back[key][i]){ DB.back[key][i][c]=el.value; Store.saveBack(); renderAuPreview(); }
+    });
+    v.addEventListener('click',(e)=>{
+      const a=e.target.closest('[data-bk-act]'); if(!a) return; const act=a.getAttribute('data-bk-act'), key=a.getAttribute('data-bk');
+      if(act==='add'){ DB.back[key]=[...(DB.back[key]||[]),{a:'',b:''}]; }
+      else { const i=+a.getAttribute('data-i'); if(act==='del') DB.back[key]=(DB.back[key]||[]).filter((r,idx)=>idx!==i); else if(act==='hot'){ const r=DB.back[key][i]; if(r) r.hot=!r.hot; } }
+      Store.saveBack(); renderBackEditor(); renderAuPreview();
+    });
+  }
+
+  // double-sided print: a fronts page then a backs page, same grid geometry,
+  // centered + identical backs so duplex (long-edge) aligns; cut along the grid.
+  function auFmt(){ const f=AU_FORMATS.find(f=>f.key===DB.auFormat)||AU_FORMATS[0]; const W=f.w, H=+(328*W/520).toFixed(2); return {W,H,sc:(W*3.7795)/520}; }
+  function auCell(html,W,H,sc){ return `<div style="width:${W}mm;height:${H}mm;overflow:hidden;"><div style="width:520px;height:328px;transform:scale(${sc.toFixed(4)});transform-origin:top left;">${html}</div></div>`; }
+  function auGridPage(cells,cols){ let rows=''; for(let i=0;i<cells.length;i+=cols){ rows+='<div style="display:flex;">'+cells.slice(i,i+cols).join('')+'</div>'; } return `<div style="break-after:page;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;">${rows}</div>`; }
+  function auPrintDuplex(list){
+    if(!list.length) return;
+    const {W,H,sc}=auFmt();
+    const cols=Math.max(1,Math.floor(194/W)), rows=Math.max(1,Math.floor(281/H)), per=cols*rows;
+    const empty=`<div style="width:${W}mm;height:${H}mm;"></div>`;
+    let out='';
+    for(let i=0;i<list.length;i+=per){
+      const group=list.slice(i,i+per); const used=Math.ceil(group.length/cols)*cols;
+      const front=[], back=[];
+      for(let j=0;j<used;j++){ front.push(j<group.length? auCell(auCardHTML(group[j],pad(pIdx(group[j].id)+1)),W,H,sc) : empty); back.push(auCell(backCardHTML(),W,H,sc)); }
+      out += auGridPage(front,cols) + auGridPage(back,cols);
+    }
+    const sh=$('printSheet'); sh.style.padding='0'; sh.innerHTML=out; doPrint();
+  }
+  function auPrintAll(){ auPrintDuplex(auDisplay()); }
+  function auPrintOne(id){ const p=pById(id); if(p) auPrintDuplex([p]); }
 
   /* ===================== SCHILD rendering ===================== */
   function dims(or){ return or==='L'?{w:1123,h:794,bandH:84,heroFont:104}:{w:794,h:1123,bandH:92,heroFont:92}; }
