@@ -229,7 +229,10 @@
   <div id="viewDrehplan" style="flex:1;display:none;flex-direction:column;min-height:0;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid #2a2c31;flex:none;flex-wrap:wrap;">
       <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;display:flex;align-items:center;gap:9px;"><span style="width:9px;height:9px;border-radius:50%;background:oklch(0.72 0.15 155);display:block;animation:livedot 1.6s ease-in-out infinite;"></span>Live-Steuerung fürs Base-Board</span>
-      <div id="dpOpenBoard" class="act primary" role="button" tabindex="0" style="padding:9px 16px;background:oklch(0.72 0.15 155);border-color:oklch(0.72 0.15 155);color:#0c0d10;"><span style="width:8px;height:8px;background:#0c0d10;transform:rotate(45deg);display:block;margin-right:8px;"></span>BOARD ANZEIGEN</div>
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+        <div id="dpPrintScenes" class="act" role="button" tabindex="0" style="padding:9px 16px;">SZENEN-ZETTEL DRUCKEN</div>
+        <div id="dpOpenBoard" class="act primary" role="button" tabindex="0" style="padding:9px 16px;background:oklch(0.72 0.15 155);border-color:oklch(0.72 0.15 155);color:#0c0d10;"><span style="width:8px;height:8px;background:#0c0d10;transform:rotate(45deg);display:block;margin-right:8px;"></span>BOARD ANZEIGEN</div>
+      </div>
     </div>
     <div style="flex:1;overflow:auto;min-height:0;background:#0c0d10;"><div id="dpBody" style="max-width:820px;margin:0 auto;padding:22px;display:flex;flex-direction:column;gap:18px;"></div></div>
   </div>
@@ -329,11 +332,51 @@
     note:'Bei Fund zurück an Aufnahmeleitung · R. 014',
   };
   const ACC = 'oklch(0.72 0.15 155)'; // board accent green
-  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A', auStyle: 'dark', auFormat: 'cr80', board: {...BOARD_DEFAULTS}, back: JSON.parse(JSON.stringify(BACK_DEFAULTS)) };
+  const DB = { people: [], signs: [], filmTitle: FILM_DEFAULT, signStyle: 'A', auStyle: 'dark', auFormat: 'cr80', board: {...BOARD_DEFAULTS}, back: JSON.parse(JSON.stringify(BACK_DEFAULTS)), scenes: [] };
   const num = (v)=>{ const n=parseInt(v,10); return isNaN(n)?0:n; };
   function todayKey(){ const d=new Date(); return isoOf(d); }
   const SCENE_NAMES = ['Vorspann · Establishing','Treppenhaus Nacht','Klassenzimmer leer','Pausenhof Tag','Spind-Konfrontation','Flur Verfolgung','Toilette Versteck','Aula Versammlung','Bibliothek Fund','Keller Entdeckung','Dachboden Geständnis','Parkplatz Abschied','Bushaltestelle Regen','Wohnzimmer Familie','Küche Streit','Schlafzimmer Brief','Wald Flucht','See Ufer','Brücke Treffen','Café Gespräch','Sporthalle Duell','Umkleide danach','Direktorat Verhör','Lehrerzimmer','Treppe Sturz','Krankenstation','Garten Erinnerung','Garage Plan','Straße Nacht','Bahnhof Ankunft','Zug Abteil','Hotel Lobby','Zimmer Enthüllung','Telefonzelle','Markt Gedränge','Kirche Stille','Friedhof Trauer','Strand Sonnenaufgang','Showdown Finale','Abspann · Wrap'];
   function makeDefaultScenes(){ const total=num(BOARD_DEFAULTS.scenesTotal)||SCENE_NAMES.length; return SCENE_NAMES.slice(0,total).map((t,i)=>({id:'s'+(i+1),no:i+1,title:t,done:i<18,doneAt:i<18?todayKey():null})); }
+
+  // Imported scenes of „The Massacre of Love" (Drehbuch + Drehplan). The rich
+  // per-scene data (synopsis, cast, length, time) is kept in the ENCRYPTED state
+  // only — the screenplay is confidential and must never reach the public board.
+  const SCENE_SET_ID = 'screw-v1';
+  const SCENES_IMPORT = [
+    {no:1,it:"EXT.",loc:"Filmset",tod:"Nacht",pg:"",dur:"",day:0,ch:[],syn:"Establishing: Starker Regen und Donner über einem imposanten Gebäude inmitten endloser Wälder und Wiesen."},
+    {no:2,it:"INT.",loc:"Filmset",tod:"Nacht",pg:"",dur:"",day:0,ch:["Leander", "Clara"],syn:"Zwei platschnasse Gestalten (Clara & Leander) stürmen in die Halle, verwüsten das Set und tränken die Kostüme in roter Farbe. TITEL."},
+    {no:3,it:"EXT.",loc:"Filmset",tod:"Tag",pg:"",dur:"",day:0,ch:["Rosalinde"],syn:"Rosalinde läuft zur Scheune, bemerkt das aufgebrochene Schloss und betritt vorsichtig das Gebäude."},
+    {no:4,it:"INT.",loc:"Filmset",tod:"Tag",pg:"3⁄8",dur:"0:30",day:6,ch:["Rosalinde"],syn:"Rosalinde entdeckt das Chaos, ertastet frische rote Farbe an den Kleidern und ruft Petrus an."},
+    {no:5,it:"INT.",loc:"Filmset",tod:"Tag",pg:"3⁄8",dur:"0:30",day:6,ch:["Petrus", "Rosalinde"],syn:"Das Team räumt das verwüstete Set auf; Rosalinde und der übernächtigte Petrus blicken auf die Arbeit."},
+    {no:6,it:"INT.",loc:"Filmset",tod:"Tag",pg:"1",dur:"1:30",day:4,ch:["Clara"],syn:"Clara spielt als „Julia“ die Todesszene mit dem Gift-Fläschchen – bis „CUT“."},
+    {no:7,it:"INT.",loc:"Filmset",tod:"Tag",pg:"5⁄8",dur:"1:00",day:4,ch:["John", "Petrus", "Clara"],syn:"Petrus stoppt die Szene, ruft „Szene 7“ aus und führt John aus dem Set; Clara geht ebenfalls hinaus."},
+    {no:8,it:"INT.",loc:"Pausenraum",tod:"Tag",pg:"3⁄8",dur:"0:30",day:1,ch:["Leander", "Clara"],syn:"Im Pausenraum nimmt Clara einen Kaffee, setzt sich zu Leander und ringt mit den Worten: „Es reicht nicht.“"},
+    {no:9,it:"EXT.",loc:"Filmset",tod:"Tag",pg:"",dur:"",day:0,ch:[],syn:"Von der Straße hört man das Geräusch eines alten Motorrads."},
+    {no:10,it:"INT.",loc:"Pausenraum",tod:"Tag",pg:"1⁄8",dur:"0:10",day:1,ch:["Leander", "Clara"],syn:"Leander blickt Clara skeptisch an. INSERT: Eine Flüssigkeit tropft auf den Boden."},
+    {no:11,it:"EXT.",loc:"Filmset",tod:"Tag",pg:"",dur:"",day:0,ch:["Hansi"],syn:"Auf dem Motorrad sitzt jemand in Polizeiuniform."},
+    {no:12,it:"INT.",loc:"Pausenraum",tod:"Tag",pg:"2⁄8",dur:"0:10",day:1,ch:["Leander", "Clara"],syn:"Leander: „Du willst…“. INSERT: Ein Streichholz, eine Flamme."},
+    {no:13,it:"EXT.",loc:"Filmset",tod:"Tag",pg:"",dur:"",day:0,ch:["Hansi"],syn:"Das Motorrad von vorn – ein Polizist mit Sonnenbrille."},
+    {no:14,it:"INT.",loc:"Pausenraum",tod:"Tag",pg:"2⁄8",dur:"0:30",day:1,ch:["Leander", "Clara"],syn:"INSERT: Alles entzündet, eine brennende Scheune. Leander: „Das geht zu weit.“ – Sorge in seinem Gesicht."},
+    {no:15,it:"INT.",loc:"Filmset",tod:"Tag",pg:"4⁄8",dur:"0:30",day:5,ch:["Rosalinde", "Hansi"],syn:"Der Polizist Hansi betritt das Set; niemand beachtet ihn, Rosalinde ruft „Ruhe, wir drehen!“, er schleicht herum."},
+    {no:16,it:"INT.",loc:"Filmset",tod:"Tag",pg:"1 5⁄8",dur:"2:00",day:2,ch:["Anton", "Danny", "John", "Petrus", "Richelle", "Rosalinde", "Benita"],syn:"John und Danny liefern sich den einstudierten Schwertkampf, bis ein Scheinwerfer ins Bild kracht; Petrus lässt weiterdrehen."},
+    {no:17,it:"INT.",loc:"Filmset",tod:"Tag",pg:"7⁄8",dur:"1:00",day:5,ch:["John", "Petrus", "Richelle", "Hansi", "Benita"],syn:"John wirft wütend das Schwert hin; Petrus lobt den Take; Benita erkennt Hansi, Richelle fragt, wer er sei."},
+    {no:18,it:"INT.",loc:"Filmset",tod:"Tag",pg:"2 1⁄8",dur:"1:00",day:6,ch:["Petrus", "Richelle", "Rosalinde", "Hansi"],syn:"Hansi stellt sich Petrus als Oberkommissar vor; Petrus erklärt die Sabotage und ruft den Umbau zur Gruft-Szene aus. Richelle versteckt eine abgesägte Schraube."},
+    {no:19,it:"INT.",loc:"Filmset",tod:"Tag",pg:"3⁄8",dur:"1:00",day:6,ch:["Hansi"],syn:"Allein durchsucht Hansi das Set, findet rote Farbeimer und Messer und fotografiert alles."},
+    {no:20,it:"INT.",loc:"Pausenraum",tod:"Tag",pg:"1 5⁄8",dur:"1:30",day:1,ch:["Leander", "Clara", "Hansi"],syn:"Leander und Clara streiten allein im Pausenraum; draußen lauscht Hansi und trifft Clara an der Tür."},
+    {no:21,it:"INT.",loc:"Keller",tod:"Tag",pg:"6⁄8",dur:"1:00",day:2,ch:["Anton", "Leander", "Petrus", "Richelle", "Clara", "Rosalinde", "Hansi", "Benita"],syn:"Hansi steigt in den Keller; gedreht wird die Gruft-Szene mit dem reglosen Leander und Anton als Paris."},
+    {no:22,it:"INT.",loc:"Keller",tod:"Tag",pg:"6⁄8",dur:"2:00",day:2,ch:["Anton", "Leander", "Petrus"],syn:"Leander und Anton (Romeo & Paris) ziehen die Dolche; Anton sticht zu, Leander fällt zu Boden. „CUT!“"},
+    {no:23,it:"INT.",loc:"Keller",tod:"Tag",pg:"1 6⁄8",dur:"2:00",day:3,ch:["Anton", "Leander", "Petrus", "Richelle", "Clara", "Rosalinde", "Hansi", "Benita"],syn:"Niemand merkt zunächst, dass Leander wirklich tot ist; Hansi zieht das echte Messer: „Er ist tot.“"},
+    {no:24,it:"INT.",loc:"Keller",tod:"Tag",pg:"2⁄8",dur:"0:10",day:6,ch:[],syn:"Im dunklen Kellergang: ein Knall, etwas Großes fällt, Stimmen aus dem Off."},
+    {no:25,it:"INT.",loc:"Büro",tod:"Tag",pg:"1 5⁄8",dur:"1:30",day:3,ch:["Anton", "Clara", "Hansi"],syn:"Verhör im Büro: Hansi befragt den gebrochenen Anton und dann Clara, die ausweicht."},
+    {no:26,it:"INT.",loc:"Büro",tod:"Tag",pg:"7⁄8",dur:"1:00",day:3,ch:["Anton", "Rosalinde", "Hansi"],syn:"Im Verhör verteidigt Rosalinde Petrus als Visionär; Anton sitzt weiter schniefend daneben."},
+    {no:27,it:"INT.",loc:"Büro",tod:"Tag",pg:"6⁄8",dur:"1:00",day:3,ch:["Richelle", "Hansi"],syn:"Richelle legt die abgesägte Schraube auf den Tisch und bricht über den Druck und die Saboteure aus."},
+    {no:28,it:"INT.",loc:"Büro",tod:"Tag",pg:"1 3⁄8",dur:"1:30",day:5,ch:["Anton", "Hansi"],syn:"Anton gesteht verzweifelt „Ich habe ihn umgebracht“ und ersticht sich schließlich selbst."},
+    {no:29,it:"INT.",loc:"Keller",tod:"Tag",pg:"2 6⁄8",dur:"2:00",day:4,ch:["John", "Petrus", "Clara", "Hansi"],syn:"Hansi entdeckt den geheimen Raum; Petrus zwingt den weinenden John mit vorgehaltener Waffe zum Spielen. Dann wird Hansi überwältigt – Claras Stimme."},
+    {no:30,it:"INT.",loc:"Lagerraum",tod:"Tag",pg:"1 1⁄8",dur:"1:30",day:1,ch:["Petrus", "Rosalinde"],syn:"Im Lagerraum tauscht Petrus den Dolch; Rosalinde ertappt ihn: „Du hast Leander umgebracht?“"},
+    {no:31,it:"INT.",loc:"Keller",tod:"Tag",pg:"1",dur:"1:00",day:5,ch:["Clara", "Hansi"],syn:"Clara erklärt Hansi die Sabotage und fleht ihn an, sie alle herauszuholen."},
+    {no:32,it:"INT.",loc:"Filmset",tod:"Tag",pg:"3 7⁄8",dur:"2:00",day:5,ch:["Danny", "John", "Petrus", "Richelle", "Clara", "Rosalinde", "Hansi", "Benita"],syn:"Hansi nimmt Petrus fest, doch das Team stellt sich vor den Regisseur; Petrus zieht die Waffe, erschießt Richelle und zwingt zum Weiterdrehen."},
+    {no:33,it:"INT.",loc:"Kino",tod:"Tag",pg:"",dur:"",day:0,ch:["Johan", "Saskia"],syn:"Ein Paar (Johan & Saskia) sieht im vollen Kino die fertige „Julia-Todesszene“. CUT TO BLACK. ENDE."}
+  ];
   const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
   const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
   function isoOf(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
@@ -342,7 +385,7 @@
   /* ===================== storage layer ===================== */
   // Single local "database". Swap these for a cloud adapter (e.g. Supabase REST)
   // to get true cross-device storage — same shape, just async.
-  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', auformat:'xy_au_format_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1', back:'xy_back_v1' };
+  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', auformat:'xy_au_format_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1', back:'xy_back_v1', scenes:'xy_scenes_v1' };
   const uid = (p) => p + Math.random().toString(36).slice(2, 9);
 
   function normPerson(p){ return { id:p.id||uid('p'), name:p.name||'', dept:DEPTS[p.dept]?p.dept:'TE', role:p.role||'', filmRole:p.filmRole||'', head:!!p.head, media:!!p.media, legacy:!!p.legacy, lehrer:!!p.lehrer, noimg:!!p.noimg, guest:!!p.guest }; }
@@ -380,7 +423,8 @@
     auformat(){ try{ localStorage.setItem(K.auformat, DB.auFormat); }catch(e){} },
     board(){ try{ localStorage.setItem(K.board, JSON.stringify(DB.board)); }catch(e){} },
     back(){ try{ localStorage.setItem(K.back, JSON.stringify(DB.back)); }catch(e){} },
-    all(){ this.people(); this.signs(); this.film(); this.style(); this.austyle(); this.auformat(); this.board(); this.back(); },
+    scenes(){ try{ localStorage.setItem(K.scenes, JSON.stringify(DB.scenes)); }catch(e){} },
+    all(){ this.people(); this.signs(); this.film(); this.style(); this.austyle(); this.auformat(); this.board(); this.back(); this.scenes(); },
   };
 
   // ---- client-side encryption (password protects the cloud data) ----
@@ -412,7 +456,7 @@
   const SUPA_H = { 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY, 'Content-Type':'application/json' };
   const Cloud = {
     enabled:true, lastEdit:0, lastSeen:0, busy:false, timer:null,
-    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle, auStyle:DB.auStyle, auFormat:DB.auFormat, board:DB.board, back:DB.back }; },
+    snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle, auStyle:DB.auStyle, auFormat:DB.auFormat, board:DB.board, back:DB.back, scenes:DB.scenes }; },
     status(t,c){ const el=$('cloudStatus'); if(el){ el.textContent=t; el.style.color=c||'#6c6e74'; } },
     schedule(){ this.lastEdit=Date.now(); if(!this.enabled) return; clearTimeout(this.timer); this.timer=setTimeout(()=>this.push(),800); },
     // read the remote row; returns {data, updated_at} (data decrypted) or null
@@ -446,13 +490,13 @@
       try{
         const {data,updated_at}=await this.fetchRow();
         const hasRemote = data && (Array.isArray(data.people)||Array.isArray(data.signs));
-        if(!hasRemote){ await this.push(); return; }                  // remote empty -> seed it from local
+        if(!hasRemote){ maybeImportScenes(); await this.push(); return; }   // remote empty -> seed it from local
         const ru=Date.parse(updated_at)||0;
-        if(initial){ applySnapshot(data); this.lastSeen=ru; renderActive(); this.status('Cloud · synchron','#6ee7b7'); this.publishBoard(); return; }
+        if(initial){ applySnapshot(data); this.lastSeen=ru; maybeImportScenes(); renderActive(); this.status('Cloud · synchron','#6ee7b7'); this.publishBoard(); return; }
         if(ru>this.lastSeen && (Date.now()-this.lastEdit>5000)){      // newer remote & not mid-edit
-          applySnapshot(data); this.lastSeen=ru; renderActive(); this.status('Cloud · aktualisiert','#6ee7b7');
+          applySnapshot(data); this.lastSeen=ru; maybeImportScenes(); renderActive(); this.status('Cloud · aktualisiert','#6ee7b7');
         }
-      }catch(e){ this.status('Cloud · offline (lokal)','#e0a04a'); }
+      }catch(e){ maybeImportScenes(); this.status('Cloud · offline (lokal)','#e0a04a'); }
     },
     start(){ if(!this.enabled) return; setInterval(()=>{ if(!this.busy) this.pull(false); }, 12000); },
   };
@@ -473,6 +517,8 @@
       if(!Array.isArray(DB.board.scenes)) DB.board.scenes = makeDefaultScenes();
       let bk=null; try{ bk=JSON.parse(localStorage.getItem(K.back)); }catch(e){}
       DB.back = (bk&&typeof bk==='object') ? {...JSON.parse(JSON.stringify(BACK_DEFAULTS)), ...bk} : JSON.parse(JSON.stringify(BACK_DEFAULTS));
+      let scn=null; try{ scn=JSON.parse(localStorage.getItem(K.scenes)); }catch(e){}
+      DB.scenes = Array.isArray(scn) ? scn : [];
     },
     savePeople(){ LS.people(); Cloud.schedule(); },
     saveSigns(){ LS.signs(); Cloud.schedule(); },
@@ -482,6 +528,7 @@
     saveAuFormat(){ LS.auformat(); Cloud.schedule(); },
     saveBoard(){ LS.board(); Cloud.schedule(); },
     saveBack(){ LS.back(); Cloud.schedule(); },
+    saveScenes(){ LS.scenes(); Cloud.schedule(); },
   };
 
   // Replace whole DB from a remote snapshot, write-through to the local cache.
@@ -495,7 +542,30 @@
     if(typeof data.auFormat==='string' && AU_FORMATS.some(f=>f.key===data.auFormat)) DB.auFormat=data.auFormat;
     if(data.board&&typeof data.board==='object'){ DB.board={...BOARD_DEFAULTS, ...data.board}; if(!Array.isArray(DB.board.scenes)) DB.board.scenes=makeDefaultScenes(); }
     if(data.back&&typeof data.back==='object'){ DB.back={...JSON.parse(JSON.stringify(BACK_DEFAULTS)), ...data.back}; }
+    if(Array.isArray(data.scenes)) DB.scenes=data.scenes;
     LS.all();
+  }
+
+  // One-time import of the screenplay scenes + Drehplan and a fresh board reset.
+  // Guarded by a flag stored in the (synced) board, so it runs once per project.
+  function maybeImportScenes(){
+    if(DB.board && DB.board.sceneSet===SCENE_SET_ID) return false;
+    DB.scenes = SCENES_IMPORT.map(s=>({...s, ch:[...s.ch]}));
+    DB.board.scenes = SCENES_IMPORT.map(s=>({id:'s'+s.no, no:s.no, title:s.loc, done:false, doneAt:null}));
+    const day1 = SCENES_IMPORT.filter(s=>s.day===1).length;
+    const crew = DB.people.filter(p=>!p.guest).length;
+    DB.board.scenesTotal = String(SCENES_IMPORT.length);
+    DB.board.current = null;
+    DB.board.minutesShot = '0';
+    DB.board.dayNum = '1';
+    DB.board.dayTotal = '6';
+    DB.board.todayPlan = String(day1);
+    DB.board.crewToday = '0';
+    DB.board.motto = '';
+    if(crew) DB.board.participants = String(crew);
+    DB.board.sceneSet = SCENE_SET_ID;
+    LS.board(); LS.scenes(); Cloud.schedule();
+    return true;
   }
   // Re-render the active view after a remote change (without clobbering active typing).
   function renderActive(){
@@ -1101,6 +1171,38 @@
       <div style="text-align:center;color:#5a5d64;font:400 11px 'IBM Plex Mono',monospace;line-height:1.7;margin-top:8px;">Jede Änderung wird sofort gespeichert und über die Cloud aufs Board übertragen.</div>`;
   }
 
+  // ---- printable scene notes (Szenen-Zettel) ----
+  function sceneCardHTML(s){
+    const chips = (s.ch&&s.ch.length)
+      ? s.ch.map(c=>`<span style="font:700 8.5px 'IBM Plex Mono',monospace;letter-spacing:.03em;border:1px solid #111;border-radius:3px;padding:1px 5px;">${esc(c)}</span>`).join('')
+      : `<span style="font:400 9px 'IBM Plex Mono',monospace;color:#777;">keine Figuren im Bild</span>`;
+    const meta=`<div style="text-align:right;font:600 8.5px 'IBM Plex Mono',monospace;line-height:1.55;white-space:nowrap;color:#111;">
+        <div>LÄNGE <b style="font-size:12px;">${esc(s.pg||'—')}</b>${s.pg?' S.':''}</div>
+        <div>ZEIT <b style="font-size:12px;">${esc(s.dur||'—')}</b></div>
+        <div style="color:#555;">${s.day?('DREHTAG '+s.day):'nicht geplant'}</div>
+      </div>`;
+    return `<div style="display:inline-block;vertical-align:top;width:93mm;height:62mm;margin:0 2mm 3mm 0;box-sizing:border-box;border:1.2px solid #111;padding:3.5mm 4mm;overflow:hidden;background:#fff;color:#111;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+      <div style="display:flex;flex-direction:column;height:100%;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4mm;border-bottom:1.2px solid #111;padding-bottom:2mm;flex:none;">
+          <div style="min-width:0;">
+            <div style="font:700 30px 'Saira Condensed',sans-serif;line-height:.82;">SZ ${s.no}</div>
+            <div style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.08em;margin-top:1.5mm;text-transform:uppercase;">${esc(s.it)} ${esc(s.loc)} · ${esc(s.tod)}</div>
+          </div>
+          ${meta}
+        </div>
+        <div style="margin-top:2mm;display:flex;flex-wrap:wrap;gap:1.5mm;flex:none;">${chips}</div>
+        <div style="margin-top:2mm;flex:1;min-height:0;overflow:hidden;font:400 9.5px 'IBM Plex Mono',monospace;line-height:1.42;">${esc(s.syn)}</div>
+        <div style="flex:none;border-top:1px solid #ccc;padding-top:1.4mm;margin-top:1mm;font:600 7px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#999;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nameUpper(DB.filmTitle)} · SZENEN-ZETTEL</div>
+      </div>
+    </div>`;
+  }
+  function printSceneCards(){
+    const list = (Array.isArray(DB.scenes)&&DB.scenes.length ? DB.scenes : SCENES_IMPORT).slice().sort((a,b)=>a.no-b.no);
+    const sh=$('printSheet'); sh.style.padding='0';
+    sh.innerHTML = `<div style="font-size:0;">${list.map(sceneCardHTML).join('')}</div>`;
+    doPrint();
+  }
+
   function wireDrehplan(){
     const v=$('viewDrehplan');
     v.addEventListener('input',(e)=>{ const el=e.target.closest('input[data-scene]'); if(el) dpRename(el.getAttribute('data-scene'), el.value); });
@@ -1114,6 +1216,7 @@
       if(act==='step') return dpBump(a.getAttribute('data-field'), parseInt(a.getAttribute('data-d')), num(a.getAttribute('data-min')));
     });
     $('dpOpenBoard').addEventListener('click',openBoard);
+    $('dpPrintScenes').addEventListener('click',printSceneCards);
     $('boardClose').addEventListener('click',closeBoard);
     $('boardFull').addEventListener('click',()=>{ try{ if(document.fullscreenElement) document.exitFullscreen(); else $('boardView').requestFullscreen(); }catch(e){} });
     document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'&&boardOpen) closeBoard(); });
