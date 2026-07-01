@@ -385,7 +385,7 @@
   /* ===================== storage layer ===================== */
   // Single local "database". Swap these for a cloud adapter (e.g. Supabase REST)
   // to get true cross-device storage — same shape, just async.
-  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', auformat:'xy_au_format_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1', back:'xy_back_v1', scenes:'xy_scenes_v1' };
+  const K = { people:'tmol_participants_v2', signs:'xy_signs_v2', signsOld:'xy_signs_v1', film:'tmol_filmtitle_v1', style:'xy_sign_style_v1', austyle:'xy_au_style_v1', auformat:'xy_au_format_v1', board:'xy_board_v1', boardOld:'xy_statboard_v1', back:'xy_back_v1', scenes:'xy_scenes_v1', migrated:'xy_migrated_v1', dirty:'xy_dirty_v1' };
   const uid = (p) => p + Math.random().toString(36).slice(2, 9);
 
   function normPerson(p){ return { id:p.id||uid('p'), name:p.name||'', dept:DEPTS[p.dept]?p.dept:'TE', role:p.role||'', filmRole:p.filmRole||'', head:!!p.head, media:!!p.media, legacy:!!p.legacy, lehrer:!!p.lehrer, noimg:!!p.noimg, guest:!!p.guest }; }
@@ -458,7 +458,9 @@
     enabled:true, lastEdit:0, lastSeen:0, busy:false, timer:null,
     snapshot(){ return { people:DB.people, signs:DB.signs, filmTitle:DB.filmTitle, signStyle:DB.signStyle, auStyle:DB.auStyle, auFormat:DB.auFormat, board:DB.board, back:DB.back, scenes:DB.scenes }; },
     status(t,c){ const el=$('cloudStatus'); if(el){ el.textContent=t; el.style.color=c||'#6c6e74'; } },
-    schedule(){ this.lastEdit=Date.now(); if(!this.enabled) return; clearTimeout(this.timer); this.timer=setTimeout(()=>this.push(),800); },
+    schedule(){ this.lastEdit=Date.now(); try{ localStorage.setItem(K.dirty, String(this.lastEdit)); }catch(e){} if(!this.enabled) return; clearTimeout(this.timer); this.timer=setTimeout(()=>this.push(),800); },
+    // Push any pending edit right now (used on page hide so quick reloads don't lose changes).
+    flush(){ if(this.timer){ clearTimeout(this.timer); this.timer=null; if(this.enabled) this.push(); } },
     // read the remote row; returns {data, updated_at} (data decrypted) or null
     async fetchRow(){
       const r=await fetch(`${SUPA_URL}/crew_state?id=eq.main&select=data,updated_at`,{headers:SUPA_H});
@@ -476,7 +478,7 @@
         const enc=await Crypto.encrypt(this.snapshot());
         const r=await fetch(`${SUPA_URL}/crew_state?on_conflict=id`,{method:'POST',headers:{...SUPA_H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([{id:'main',data:{enc},updated_at}])});
         if(!r.ok) throw new Error('HTTP '+r.status);
-        this.lastSeen=Date.parse(updated_at)||this.lastSeen; this.status('Cloud · synchron','#6ee7b7');
+        this.lastSeen=Date.parse(updated_at)||this.lastSeen; try{ localStorage.removeItem(K.dirty); }catch(e){} this.status('Cloud · synchron','#6ee7b7');
       }catch(e){ this.status('Cloud · offline (lokal gesichert)','#e0a04a'); }
       this.busy=false;
       this.publishBoard();
@@ -492,9 +494,15 @@
         const hasRemote = data && (Array.isArray(data.people)||Array.isArray(data.signs));
         if(!hasRemote){ maybeImportScenes(); ensureBoardShape(); await this.push(); return; }   // remote empty -> seed it from local
         const ru=Date.parse(updated_at)||0;
-        if(initial){ applySnapshot(data); this.lastSeen=ru; maybeImportScenes(); ensureBoardShape(); renderActive(); this.status('Cloud · synchron','#6ee7b7'); this.publishBoard(); return; }
+        if(initial){
+          let localDirty=0; try{ localDirty=parseInt(localStorage.getItem(K.dirty))||0; }catch(e){}
+          if(localDirty && localDirty>ru){   // unpushed local edits are newer than the cloud -> keep them & upload
+            maybeImportScenes(); ensureBoardShape(); renderActive(); if(boardOpen) renderBoard(); this.status('Cloud · lade lokale Änderungen hoch…','#8a8d94'); this.push(); return;
+          }
+          applySnapshot(data); this.lastSeen=ru; maybeImportScenes(); ensureBoardShape(); renderActive(); if(boardOpen) renderBoard(); this.status('Cloud · synchron','#6ee7b7'); this.publishBoard(); return;
+        }
         if(ru>this.lastSeen && (Date.now()-this.lastEdit>5000)){      // newer remote & not mid-edit
-          applySnapshot(data); this.lastSeen=ru; maybeImportScenes(); ensureBoardShape(); renderActive(); this.status('Cloud · aktualisiert','#6ee7b7');
+          applySnapshot(data); this.lastSeen=ru; maybeImportScenes(); ensureBoardShape(); renderActive(); if(boardOpen) renderBoard(); this.status('Cloud · aktualisiert','#6ee7b7');
         }
       }catch(e){ maybeImportScenes(); ensureBoardShape(); this.status('Cloud · offline (lokal)','#e0a04a'); }
     },
@@ -549,7 +557,10 @@
   // One-time import of the screenplay scenes + Drehplan and a fresh board reset.
   // Guarded by a flag stored in the (synced) board, so it runs once per project.
   function maybeImportScenes(){
-    if(DB.board && DB.board.sceneSet===SCENE_SET_ID) return false;
+    let lsFlag=null; try{ lsFlag=localStorage.getItem(K.migrated); }catch(e){}
+    // Never re-run the destructive reset once this device has migrated, even if a
+    // cloud push of the flag didn't stick — otherwise a reload would wipe edits.
+    if((DB.board && DB.board.sceneSet===SCENE_SET_ID) || lsFlag===SCENE_SET_ID){ if(DB.board) DB.board.sceneSet=SCENE_SET_ID; return false; }
     DB.scenes = SCENES_IMPORT.map(s=>({...s, ch:[...s.ch]}));
     DB.board.scenes = SCENES_IMPORT.map(s=>({id:'s'+s.no, no:s.no, title:s.loc, done:false, doneAt:null, hidden:false}));
     const day1nos = SCENES_IMPORT.filter(s=>s.day===1).map(s=>s.no);
@@ -563,6 +574,7 @@
     DB.board.motto = '';
     if(crew) DB.board.participants = String(crew);
     DB.board.sceneSet = SCENE_SET_ID;
+    try{ localStorage.setItem(K.migrated, SCENE_SET_ID); }catch(e){}
     refreshStage();
     LS.board(); LS.scenes(); Cloud.schedule();
     return true;
@@ -1470,6 +1482,9 @@
     document.querySelectorAll('#tabs .tab').forEach(b=>b.addEventListener('click',()=>switchTab(b.getAttribute('data-tab'))));
     window.addEventListener('resize',()=>{ if(activeTab==='ausweise') fitAuPreview(); else if(activeTab==='schilder') renderSignPreview(); if(boardOpen) fitBoard(); });
     window.addEventListener('orientationchange',()=>{ if(activeTab==='ausweise') fitAuPreview(); else if(activeTab==='schilder') renderSignPreview(); if(boardOpen) fitBoard(); });
+    // Flush any pending cloud save before the page is hidden/closed so edits aren't lost on a quick reload.
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') Cloud.flush(); });
+    window.addEventListener('pagehide',()=>Cloud.flush());
 
     wirePeople(); wireSchilder(); wireDrehplan();
     renderPeople(); renderAuPreview();
