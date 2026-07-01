@@ -356,7 +356,7 @@
   };
 
   const FILM_DEFAULT = 'The Massacre of Love';
-  const BUILD = 'v16 · 2026-07-01';   // bump on each deploy so a cached build is obvious
+  const BUILD = 'v17 · 2026-07-01';   // bump on each deploy so a cached build is obvious
   const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null, plan:null, plans:null, stage:null, agenda:null, agendaDay:null, todayDone:false, fullPlan:null, showTimes:true, dayStart:null, curStart:null, done:null, shootStart:null, skipWeekend:true, offDays:null, autoDay:true };
   const BACK_DEFAULTS = {
     schedule:[{a:'08:00',b:'Treffpunkt & Check-in'},{a:'08:15',b:'Maske & Kostüm'},{a:'09:00',b:'Setbau / Einleuchten'},{a:'09:30',b:'Drehbeginn · Call',hot:true},{a:'13:00',b:'Mittagspause · Catering'},{a:'13:45',b:'Weiter am Set'},{a:'17:30',b:'Wrap · Sichtung',hot:true},{a:'18:00',b:'Set-Rückbau'}],
@@ -1791,14 +1791,16 @@
     const pips=Array.from({length:Math.min(Math.max(dt,0),16)},(_,i)=>`<span style="flex:1;min-width:14px;height:14px;border-radius:4px;background:${i<dn?'oklch(0.6 0.18 290)':'#26282d'};transition:background .5s;"></span>`).join('');
     const c=clockParts();
     const tiles=[['participants','oklch(0.62 0.13 245)','Teilnehmer:innen',num(d.participants),'','Schüler:innen & Betreuung'],['minutesShot','oklch(0.7 0.12 210)','Material',num(d.minutesShot),'Min','gedreht gesamt']].map(([key,acc,eye,val,unit,sub])=>`<div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:28px 30px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="display:flex;align-items:center;gap:11px;"><span style="width:10px;height:10px;background:${acc};transform:rotate(45deg);display:block;flex:none;"></span><span style="font:600 15px 'IBM Plex Mono',monospace;letter-spacing:.15em;color:#9a9ca3;text-transform:uppercase;">${eye}</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:8px;"><span style="font:700 88px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.76;">${odo(val, prev?prev[key]:null)}</span>${unit?`<span style="font:600 22px 'Saira Condensed',sans-serif;color:${acc};letter-spacing:.04em;text-transform:uppercase;">${unit}</span>`:''}</div><div style="font:500 14px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:12px;letter-spacing:.02em;line-height:1.35;">${sub}</div></div>`).join('');
-    const agenda=boardAgenda(14,22); const agendaDay=d.agendaDay||dn;
-    // Scale row size to the number of scenes so the box is always readable and well filled.
-    const aN=agenda.length; const aCols=aN>8?2:1;
-    const perCol=Math.ceil(aN/aCols);
-    const az = perCol<=4?{no:36,loc:29,ch:16,pad:16,dot:16,tag:16} : perCol<=7?{no:29,loc:23,ch:14,pad:11,dot:14,tag:14} : perCol<=11?{no:24,loc:20,ch:13,pad:7,dot:12,tag:13} : {no:21,loc:18,ch:12,pad:5,dot:11,tag:12};
+    const agendaDay=d.agendaDay||dn;
+    // Single column – show what fits, cut off the rest (no second column).
+    const AMAX=11; const agendaAll=boardAgenda(AMAX,60);
+    let agenda=agendaAll.slice(0,AMAX); while(agenda.length && agenda[agenda.length-1].divider) agenda.pop();
+    const moreCount=Math.max(0, agendaAll.length-agenda.length);
+    const aN=agenda.length; const perCol=aN;
+    const az = perCol<=5?{no:34,loc:27,ch:15,pad:14,dot:15,tag:15} : perCol<=8?{no:29,loc:23,ch:14,pad:11,dot:14,tag:14} : {no:25,loc:20,ch:13,pad:8,dot:13,tag:13};
     const agendaRows = agenda.length ? agenda.map(a=>{
-      if(a.divider){ const dp2=a.date?dateParts(a.date):null; return `<div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:${Math.max(az.pad-2,4)}px 0 3px;margin-top:5px;border-bottom:1px solid #34373e;"><span style="font:700 ${az.tag}px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:oklch(0.84 0.13 78);text-transform:uppercase;">Drehtag ${a.day}</span>${dp2?`<span style="font:600 ${az.tag-1}px 'IBM Plex Mono',monospace;color:#8a8d94;text-transform:uppercase;letter-spacing:.06em;">${esc(dp2.week)}, ${esc(dp2.date)}</span>`:''}</div>`; }
-      return `<div style="display:flex;align-items:center;gap:14px;padding:${az.pad}px 0;border-bottom:1px solid #23252b;${a.done?'opacity:.42;':(a.future?'opacity:.7;':'')}">
+      if(a.divider){ const dp2=a.date?dateParts(a.date):null; return `<div style="flex:none;display:flex;align-items:center;gap:10px;padding:${Math.max(az.pad-2,4)}px 0 3px;margin-top:5px;border-bottom:1px solid #34373e;"><span style="font:700 ${az.tag}px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:oklch(0.84 0.13 78);text-transform:uppercase;">Drehtag ${a.day}</span>${dp2?`<span style="font:600 ${az.tag-1}px 'IBM Plex Mono',monospace;color:#8a8d94;text-transform:uppercase;letter-spacing:.06em;">${esc(dp2.week)}, ${esc(dp2.date)}</span>`:''}</div>`; }
+      return `<div style="flex:none;display:flex;align-items:center;gap:14px;padding:${az.pad}px 0;border-bottom:1px solid #23252b;${a.done?'opacity:.42;':(a.future?'opacity:.7;':'')}">
         <span style="flex:none;width:${az.dot}px;height:${az.dot}px;border-radius:50%;background:${a.cur?'oklch(0.6 0.21 25)':(a.done?ACC:'#3a3d44')};${a.cur?'animation:livedot 1.2s ease-in-out infinite;':''}"></span>
         <span style="flex:none;width:${az.no+16}px;font:700 ${az.no}px 'Saira Condensed',sans-serif;color:#f4f3ef;">${a.no}</span>
         <div style="flex:1;min-width:0;"><div style="font:700 ${az.loc}px 'Saira Condensed',sans-serif;text-transform:uppercase;color:#f4f3ef;line-height:1.02;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.loc||'—')}${a.tod?` · ${esc(a.tod)}`:''}</div>${(a.chars&&a.chars.length)||a.kulisse?`<div style="font:500 ${az.ch}px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc((a.chars||[]).join(' · '))}${a.kulisse?`${a.chars&&a.chars.length?'  ·  ':''}Kulisse: ${esc(a.kulisse)}`:''}</div>`:''}</div>
@@ -1818,7 +1820,7 @@
             <!-- LEFT · the plan (large, adaptive) -->
             <div style="flex:1.62;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:26px 34px;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
               <div style="display:flex;align-items:center;justify-content:space-between;flex:none;"><div style="display:flex;align-items:center;gap:13px;"><span style="width:14px;height:14px;background:oklch(0.8 0.16 78);transform:rotate(45deg);display:block;"></span><span style="font:600 22px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#c9cace;text-transform:uppercase;">Anstehende Szenen · Drehtag ${agendaDay}</span></div><span style="font:500 15px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#8a8d94;text-transform:uppercase;">Ort &amp; Besetzung</span></div>
-              <div style="margin-top:14px;overflow:hidden;flex:1;min-height:0;display:grid;grid-template-columns:${aCols>1?'1fr 1fr':'1fr'};gap:0 40px;align-content:start;">${agendaRows}</div>
+              <div style="margin-top:14px;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column;">${agendaRows}${moreCount>0?`<div style="flex:none;padding-top:9px;font:600 ${az.tag}px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#6c6e74;text-transform:uppercase;">+ ${moreCount} weitere …</div>`:''}</div>
             </div>
             <!-- RIGHT · compact stats -->
             <div style="flex:1;display:flex;flex-direction:column;gap:18px;min-width:0;">
