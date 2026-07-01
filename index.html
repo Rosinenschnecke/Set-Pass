@@ -356,7 +356,7 @@
   };
 
   const FILM_DEFAULT = 'The Massacre of Love';
-  const BUILD = 'v15 · 2026-07-01';   // bump on each deploy so a cached build is obvious
+  const BUILD = 'v16 · 2026-07-01';   // bump on each deploy so a cached build is obvious
   const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null, plan:null, plans:null, stage:null, agenda:null, agendaDay:null, todayDone:false, fullPlan:null, showTimes:true, dayStart:null, curStart:null, done:null, shootStart:null, skipWeekend:true, offDays:null, autoDay:true };
   const BACK_DEFAULTS = {
     schedule:[{a:'08:00',b:'Treffpunkt & Check-in'},{a:'08:15',b:'Maske & Kostüm'},{a:'09:00',b:'Setbau / Einleuchten'},{a:'09:30',b:'Drehbeginn · Call',hot:true},{a:'13:00',b:'Mittagspause · Catering'},{a:'13:45',b:'Weiter am Set'},{a:'17:30',b:'Wrap · Sichtung',hot:true},{a:'18:00',b:'Set-Rückbau'}],
@@ -1222,7 +1222,7 @@
     (Array.isArray(d.agenda)?d.agenda:[]).forEach(add); if(d.stage){ add(d.stage.cur); add(d.stage.next); }
     const days=Object.keys(plans).map(k=>parseInt(k,10)).filter(x=>x>=1).sort((a,b)=>a-b);
     const out=[];
-    days.forEach(day=>{ const arr=(plans[String(day)]||[]).map(id=>{ const s=byId.get(id); if(!s||s.hidden) return null; const i=info[s.no]||{}; return {no:s.no, loc:i.loc||s.title||'', tod:i.tod||'', kulisse:i.kulisse||'', chars:i.chars||[], dur:i.dur||'', done:entryDone(id,day), cur:s.id===d.current}; }).filter(Boolean); if(arr.length) out.push({day, scenes:arr}); });
+    days.forEach(day=>{ const arr=(plans[String(day)]||[]).map(id=>{ const s=byId.get(id); if(!s||s.hidden) return null; const i=info[s.no]||{}; return {no:s.no, loc:i.loc||s.title||'', tod:i.tod||'', kulisse:i.kulisse||'', chars:i.chars||[], dur:i.dur||'', done:entryDone(id,day), full:sceneFullyDone(id), cur:s.id===d.current}; }).filter(Boolean); if(arr.length) out.push({day, scenes:arr}); });
     return out;
   }
   function renderPublicPlan(){
@@ -1234,7 +1234,7 @@
           <span style="flex:none;width:26px;font:700 18px 'Saira Condensed',sans-serif;color:#f4f3ef;text-align:center;">${a.no}</span>
           <div style="flex:1;min-width:0;"><div style="font:700 16px 'Saira Condensed',sans-serif;text-transform:uppercase;color:#f4f3ef;line-height:1.1;">${esc(a.loc||'—')}${a.tod?` · ${esc(a.tod)}`:''}${a.cur?` <span style="color:oklch(0.82 0.16 25);font-size:11px;">● JETZT</span>`:''}</div>${(a.chars&&a.chars.length)||a.kulisse?`<div style="font:500 11px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:2px;line-height:1.4;">${esc((a.chars||[]).join(' · '))}${a.kulisse?`${a.chars&&a.chars.length?' · ':''}Kulisse: ${esc(a.kulisse)}`:''}</div>`:''}</div>
           ${showTimes()&&(a.start||a.dur)?`<div style="flex:none;text-align:right;min-width:52px;">${a.start?`<div style="font:700 14px 'Saira Condensed',sans-serif;color:#c9cace;line-height:1;">${esc(a.start)}</div>`:''}${a.dur?`<div style="font:600 10px 'IBM Plex Mono',monospace;color:#6c6e74;">${esc(a.dur)} h</div>`:''}</div>`:''}
-          ${a.done?`<span style="flex:none;margin-top:2px;color:${ACC};font:700 15px 'IBM Plex Mono',monospace;">✓</span>`:''}
+          ${a.done?(a.full?`<span style="flex:none;margin-top:2px;color:${ACC};font:700 15px 'IBM Plex Mono',monospace;">✓</span>`:`<span title="noch nicht ganz fertig" style="flex:none;margin-top:2px;color:oklch(0.82 0.15 78);font:700 15px 'IBM Plex Mono',monospace;">◑</span>`):''}
         </div>`).join('')}</div>
       </div>`).join('') : `<div style="text-align:center;color:#6c6e74;font:500 13px 'IBM Plex Mono',monospace;padding:24px 0;">Noch kein Drehplan angelegt.</div>`;
     $('boardStage').style.display='none'; $('boardMobile').style.display='block';
@@ -1280,7 +1280,14 @@
   function setEntryDone(id,day,on){ const m=doneMap(), k=doneKey(id,day); if(on) m[k]=todayKey(); else delete m[k]; }
   function sceneDoneAny(id){ const m=doneMap(); for(const k in m){ if(k.split('|')[1]===id) return true; } return false; }
   function allPlanEntries(){ const p=plansObj(), out=[]; Object.keys(p).forEach(k=>{ (Array.isArray(p[k])?p[k]:[]).forEach(id=>{ const s=bScenes().find(x=>x.id===id); if(s&&!s.hidden) out.push({day:parseInt(k,10), id, no:s.no}); }); }); return out; }
-  function kastenCounts(){ const e=allPlanEntries(); return { done:e.filter(x=>entryDone(x.id,x.day)).length, total:e.length }; }
+  function plannedSceneIds(){ const set=new Set(); allPlanEntries().forEach(e=>set.add(e.id)); return [...set]; }
+  function sceneEntryDays(id){ const days=[]; allPlanEntries().forEach(e=>{ if(e.id===id) days.push(e.day); }); return days; }
+  function sceneRemainingDays(id){ return sceneEntryDays(id).filter(d=>!entryDone(id,d)).sort((a,b)=>a-b); }
+  // A scene is fully "im Kasten" only when it's shot on EVERY day it is planned.
+  function sceneFullyDone(id){ const ds=sceneEntryDays(id); return ds.length>0 && ds.every(d=>entryDone(id,d)); }
+  // Global counter: each distinct planned scene counts once, and only when the whole
+  // scene is finished — doubly-planned scenes don't inflate the total or count early.
+  function kastenCounts(){ const ids=plannedSceneIds(); return { done: ids.filter(sceneFullyDone).length, total: ids.length }; }
   // --- time helpers ---
   function durMin(str){ str=String(str==null?'':str).trim(); if(!str) return 0; if(str.includes(':')){ const p=str.split(':'); return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0); } return parseInt(str,10)||0; }
   function fmtDur(min){ min=Math.max(0,Math.round(min)); return Math.floor(min/60)+':'+String(min%60).padStart(2,'0'); }
@@ -1319,7 +1326,7 @@
     const ps=planScenes();
     DB.board.stage = { cur:stageOf(DB.board.current), next:nextStage() };
     let run=dayStartMin(curDay);
-    DB.board.agenda = ps.map(s=>{ const t=stageOf(s.id)||{}; const start=minToHM(run); run+=durMin(t.dur); return { no:s.no, loc:t.loc||'', tod:t.tod||'', kulisse:t.kulisse||'', chars:t.chars||[], dur:t.dur||'', start, done:entryDone(s.id,curDay), cur:s.id===DB.board.current }; });
+    DB.board.agenda = ps.map(s=>{ const t=stageOf(s.id)||{}; const start=minToHM(run); run+=durMin(t.dur); return { no:s.no, loc:t.loc||'', tod:t.tod||'', kulisse:t.kulisse||'', chars:t.chars||[], dur:t.dur||'', start, done:entryDone(s.id,curDay), full:sceneFullyDone(s.id), cur:s.id===DB.board.current }; });
     DB.board.agendaDay = dpDay();
     DB.board.dayDate = dayDateISO(curDay);
     DB.board.todayDone = ps.length>0 && ps.every(s=>entryDone(s.id,curDay));   // whole day wrapped
@@ -1331,7 +1338,7 @@
     const full=[];
     [...daySet].sort((a,b)=>a-b).forEach(day=>{
       let r2=dayStartMin(day);
-      const arr=(p[String(day)]||[]).map(id=>{ const s=bScenes().find(x=>x.id===id); if(!s||s.hidden) return null; const t=stageOf(id)||{}; const start=minToHM(r2); r2+=durMin(t.dur); return { no:s.no, loc:t.loc||'', tod:t.tod||'', kulisse:t.kulisse||'', chars:t.chars||[], dur:t.dur||'', start, done:entryDone(id,day), cur:s.id===DB.board.current }; }).filter(Boolean);
+      const arr=(p[String(day)]||[]).map(id=>{ const s=bScenes().find(x=>x.id===id); if(!s||s.hidden) return null; const t=stageOf(id)||{}; const start=minToHM(r2); r2+=durMin(t.dur); return { no:s.no, loc:t.loc||'', tod:t.tod||'', kulisse:t.kulisse||'', chars:t.chars||[], dur:t.dur||'', start, done:entryDone(id,day), full:sceneFullyDone(id), cur:s.id===DB.board.current }; }).filter(Boolean);
       if(arr.length) full.push({ day, date:dayDateISO(day), scenes:arr });
     });
     DB.board.fullPlan=full;
@@ -1418,6 +1425,7 @@
       <label><span style="${lbl}">Tag / Nacht</span><select data-scfield="tod" data-no="${no}" style="${inp}">${todOpts}</select></label>
       <label><span style="${lbl}">Dauer (Std:Min)</span><input data-scfield="dur" data-no="${no}" value="${esc(r.dur||'')}" placeholder="z. B. 1:30" style="${inp}"></label>
       <label style="grid-column:1/-1;"><span style="${lbl}">Schauspieler:innen / Figuren</span><input data-scfield="ch" data-no="${no}" value="${esc((r.ch||[]).join(', '))}" placeholder="Namen mit Komma trennen" style="${inp}"></label>
+      <label style="grid-column:1/-1;"><span style="${lbl}">Notiz zur Szene (Requisite, Hinweis, Reihenfolge …)</span><input data-scfield="note" data-no="${no}" value="${esc(r.note||'')}" placeholder="kurze Notiz – erscheint im Plan &amp; auf dem Abhaken-Board" style="${inp}"></label>
       <label style="grid-column:1/-1;"><span style="${lbl}">Drehbuch / Szenentext (für den Drehauszug)</span><textarea data-scfield="script" data-no="${no}" rows="5" placeholder="Vollständigen Szenentext einfügen … (bleibt verschlüsselt, erscheint nur im Drehauszug)" style="${inp}resize:vertical;line-height:1.5;font-weight:400;">${esc(r.script||'')}</textarea></label>
     </div>`;
   }
@@ -1459,14 +1467,14 @@
         <div data-dp-act="scedit" data-no="${s.no}" title="Ort, Kulisse & Besetzung bearbeiten" style="cursor:pointer;flex:none;height:30px;padding:0 10px;border-radius:8px;display:flex;align-items:center;gap:5px;background:${editing?ACC:'#26282d'};border:1px solid ${editing?ACC:'#34373e'};color:${editing?'#0c0d10':'#9a9ca3'};font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.05em;">✎ DETAILS</div>
         <div data-dp-act="hide" data-id="${s.id}" title="Ausblenden – zählt nicht mit" style="cursor:pointer;flex:none;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#26282d;border:1px solid #34373e;color:#9a9ca3;font-size:15px;">⦸</div>
         <div data-dp-act="remove" data-id="${s.id}" title="Szene entfernen" style="cursor:pointer;flex:none;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#5a5d64;font:400 18px 'IBM Plex Mono',monospace;">✕</div>
-        ${(()=>{ const r=sceneRich(s.no)||{}; const dd=sceneDays(s.no); const dayBadges=dd.map(x=>`<span style="font:700 9px 'IBM Plex Mono',monospace;letter-spacing:.05em;color:#0c0d10;background:oklch(0.62 0.16 290);border-radius:5px;padding:2px 7px;">DREHTAG ${x}${dayIsToday(x)?' •':''}</span>`).join(' '); const chips=(r.ch||[]).map(c=>charChip(c,10)).join(' '); return `<div style="flex-basis:100%;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:39px;margin-top:2px;">${dayBadges}${r.dur?`<span style="font:700 9px 'IBM Plex Mono',monospace;color:oklch(0.82 0.11 210);border:1px solid oklch(0.5 0.09 210);border-radius:5px;padding:2px 6px;">⏱ ${esc(r.dur)} h</span>`:''}${chips||`<span style="font:500 9px 'IBM Plex Mono',monospace;color:#6c6e74;">keine Figuren hinterlegt</span>`}</div>`; })()}
+        ${(()=>{ const r=sceneRich(s.no)||{}; const dd=sceneDays(s.no); const dayBadges=dd.map(x=>`<span style="font:700 9px 'IBM Plex Mono',monospace;letter-spacing:.05em;color:#0c0d10;background:oklch(0.62 0.16 290);border-radius:5px;padding:2px 7px;">DREHTAG ${x}${dayIsToday(x)?' •':''}</span>`).join(' '); const chips=(r.ch||[]).map(c=>charChip(c,10)).join(' '); return `<div style="flex-basis:100%;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:39px;margin-top:2px;">${dayBadges}${r.dur?`<span style="font:700 9px 'IBM Plex Mono',monospace;color:oklch(0.82 0.11 210);border:1px solid oklch(0.5 0.09 210);border-radius:5px;padding:2px 6px;">⏱ ${esc(r.dur)} h</span>`:''}${chips||`<span style="font:500 9px 'IBM Plex Mono',monospace;color:#6c6e74;">keine Figuren hinterlegt</span>`}</div>${r.note?`<div style="flex-basis:100%;padding-left:39px;margin-top:4px;font:400 11px 'IBM Plex Mono',monospace;color:oklch(0.8 0.09 85);line-height:1.35;">✎ ${esc(r.note)}</div>`:''}`; })()}
         </div>${editing?dpSceneDetailHTML(s.no):''}
       </div>`; }).join('') || `<div style="text-align:center;color:#6c6e74;font:500 14px 'IBM Plex Mono',monospace;padding:30px 0;">Keine Szenen in dieser Ansicht.</div>`;
     const dayTot=num(DB.board.dayTotal)||6; const dayList=[]; for(let dv=1; dv<=dayTot; dv++) dayList.push(dv);
     const dayBtns=dayList.map(dv=>{ const on=num(DB.board.dayNum)===dv; const isTd=dayIsToday(dv); const lbl=dayLabel(dv); return `<div data-dp-act="switchday" data-day="${dv}" title="Zu Drehtag ${dv} wechseln${lbl?' · '+lbl:''}" style="cursor:pointer;min-width:48px;padding:5px 9px;border-radius:8px;background:${on?ACC:(isTd?'oklch(0.3 0.05 260)':'#26282d')};border:1px solid ${on?ACC:(isTd?'oklch(0.6 0.14 260)':'#34373e')};text-align:center;"><div style="font:700 13px 'Saira Condensed',sans-serif;letter-spacing:.05em;color:${on?'#0c0d10':'#e7e7ea'};">T${dv}${isTd?' •':''}</div>${lbl?`<div style="font:600 8px 'IBM Plex Mono',monospace;color:${on?'#0c0d10':'#9a9ca3'};white-space:nowrap;">${esc(lbl)}</div>`:''}</div>`; }).join('')+`<div data-dp-act="resetday" title="Diesen Drehtag aus der Drehplan-Vorlage neu laden" style="cursor:pointer;height:34px;padding:0 11px;border-radius:8px;background:#26282d;border:1px solid #34373e;display:flex;align-items:center;justify-content:center;font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#9a9ca3;">↺ VORLAGE</div>`;
     const planRows=plan.length?plan.map((s,i)=>{ const r=sceneRich(s.no); const chs=(r&&r.ch&&r.ch.length)?r.ch.join(', '):'—'; return `<div style="display:flex;align-items:center;gap:9px;background:#16171b;border:1px solid #2a2c31;border-radius:10px;padding:8px 10px;">
         <span style="flex:none;width:26px;font:700 17px 'Saira Condensed',sans-serif;color:#8a8d94;text-align:center;">${s.no}</span>
-        <div style="flex:1;min-width:0;"><div style="font:600 14px 'Saira Condensed',sans-serif;letter-spacing:.02em;color:#f4f3ef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.title||'—')}</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:#8a8d94;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(chs)}</div></div>
+        <div style="flex:1;min-width:0;"><div style="font:600 14px 'Saira Condensed',sans-serif;letter-spacing:.02em;color:#f4f3ef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.title||'—')}</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:#8a8d94;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(chs)}</div>${r&&r.note?`<div style="font:400 10px 'IBM Plex Mono',monospace;color:oklch(0.8 0.09 85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;">✎ ${esc(r.note)}</div>`:''}</div>
         <span data-dp-act="planmove" data-id="${s.id}" data-dir="-1" title="nach oben" style="cursor:pointer;flex:none;font-size:12px;color:#8a8d94;padding:4px 7px;${i===0?'opacity:.25;pointer-events:none;':''}">▲</span>
         <span data-dp-act="planmove" data-id="${s.id}" data-dir="1" title="nach unten" style="cursor:pointer;flex:none;font-size:12px;color:#8a8d94;padding:4px 7px;${i===plan.length-1?'opacity:.25;pointer-events:none;':''}">▼</span>
         <div data-dp-act="planremove" data-id="${s.id}" title="Aus Tagesplan entfernen" style="cursor:pointer;flex:none;width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#5a5d64;font:400 15px 'IBM Plex Mono',monospace;">✕</div>
@@ -1521,6 +1529,7 @@
       ${curScene?`<div style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.85 0.13 25);text-transform:uppercase;">● Jetzt im Dreh</div>
         <div style="font:700 30px 'Saira Condensed',sans-serif;text-transform:uppercase;color:#fff;line-height:1;margin-top:5px;">SZ ${curScene.no} · ${esc((curInfo&&curInfo.loc)||curScene.title||'—')}${curInfo&&curInfo.tod?(' · '+esc(curInfo.tod)):''}</div>
         <div style="font:500 12px 'IBM Plex Mono',monospace;color:#f0dede;margin-top:4px;">${curInfo&&curInfo.chars&&curInfo.chars.length?esc(curInfo.chars.join(' · ')):'—'}</div>
+        ${(()=>{ const rc=sceneRich(curScene.no); return rc&&rc.note?`<div style="font:400 12px 'IBM Plex Mono',monospace;color:oklch(0.86 0.1 85);margin-top:5px;line-height:1.4;">✎ ${esc(rc.note)}</div>`:''; })()}
         ${curCd}
         <div data-dp-act="advance" style="cursor:pointer;margin-top:14px;padding:16px;border-radius:13px;background:${ACC};text-align:center;color:#0c0d10;font:700 17px 'Saira Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;">✓ Abgedreht — nächste Szene ▶</div>
         ${delayRow}`
@@ -1530,12 +1539,13 @@
         :`<div style="font:600 16px 'Saira Condensed',sans-serif;color:#8a8d94;margin-top:8px;">Alle geplanten Szenen abgehakt 🎉</div>`}`}
     </div>`;
     const abRows=plan.length?plan.map(s=>{ const r=sceneRich(s.no); const chs=(r&&r.ch&&r.ch.length)?r.ch.join(' · '):'—'; const isCur=s.id===cur; const sdone=entryDone(s.id,day); const info=startByNo[s.no]||{};
+      const rem=sdone?sceneRemainingDays(s.id):[]; const partial=rem.length>0; const note=(r&&r.note)||'';
       const moveOpts=[]; for(let dv=1; dv<=dayTot; dv++){ if(dv!==day) moveOpts.push(`<option value="${dv}">→ Drehtag ${dv}</option>`); }
       const timeCol = st?`<div style="flex:none;text-align:right;min-width:66px;">${info.start?`<div style="font:700 14px 'Saira Condensed',sans-serif;color:#c9cace;">${esc(info.start)}</div>`:''}${info.dur?`<div style="font:600 10px 'IBM Plex Mono',monospace;color:#6c6e74;">${esc(info.dur)} h</div>`:''}${isCur?`<div data-cd="main" style="font:700 17px 'Saira Condensed',sans-serif;line-height:1;margin-top:2px;"></div>`:(!sdone?`<div data-cdadj="${s.no}" style="font:600 10px 'IBM Plex Mono',monospace;color:oklch(0.7 0.2 25);"></div>`:'')}</div>`:'';
-      return `<div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:${isCur?'oklch(0.3 0.07 25)':(sdone?'oklch(0.26 0.05 155)':'#1b1d22')};border:1px solid ${isCur?'oklch(0.6 0.21 25)':(sdone?'oklch(0.45 0.09 155)':'#2a2c31')};border-radius:12px;padding:11px 13px;">
-        <div data-dp-act="toggle" data-id="${s.id}" style="cursor:pointer;flex:none;width:42px;height:42px;border-radius:10px;border:2px solid ${sdone?ACC:'#3a3d44'};background:${sdone?ACC:'transparent'};display:flex;align-items:center;justify-content:center;color:#0c0d10;font:700 22px 'IBM Plex Mono',monospace;">${sdone?'✓':''}</div>
+      return `<div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:${isCur?'oklch(0.3 0.07 25)':(sdone?(partial?'oklch(0.28 0.05 85)':'oklch(0.26 0.05 155)'):'#1b1d22')};border:1px solid ${isCur?'oklch(0.6 0.21 25)':(sdone?(partial?'oklch(0.6 0.13 85)':'oklch(0.45 0.09 155)'):'#2a2c31')};border-radius:12px;padding:11px 13px;">
+        <div data-dp-act="toggle" data-id="${s.id}" style="cursor:pointer;flex:none;width:42px;height:42px;border-radius:10px;border:2px solid ${sdone?(partial?'oklch(0.82 0.15 78)':ACC):'#3a3d44'};background:${sdone?(partial?'oklch(0.82 0.15 78)':ACC):'transparent'};display:flex;align-items:center;justify-content:center;color:#0c0d10;font:700 22px 'IBM Plex Mono',monospace;">${sdone?(partial?'◑':'✓'):''}</div>
         <span style="flex:none;width:28px;font:700 20px 'Saira Condensed',sans-serif;color:#6c6e74;text-align:center;">${s.no}</span>
-        <div style="flex:1;min-width:100px;"><div style="font:700 17px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${sdone?'#cfe8d6':'#f4f3ef'};line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.title||'—')}</div><div style="font:400 11px 'IBM Plex Mono',monospace;color:#8a8d94;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(chs)}</div></div>
+        <div style="flex:1;min-width:100px;"><div style="font:700 17px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${sdone?'#e9e6d6':'#f4f3ef'};line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.title||'—')}${partial?` <span style="font:700 9px 'IBM Plex Mono',monospace;letter-spacing:.04em;color:#0c0d10;background:oklch(0.82 0.15 78);border-radius:5px;padding:1px 6px;vertical-align:middle;">◑ NOCH T${rem.join('+')}</span>`:''}</div><div style="font:400 11px 'IBM Plex Mono',monospace;color:#8a8d94;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(chs)}</div>${note?`<div style="font:400 11px 'IBM Plex Mono',monospace;color:oklch(0.8 0.09 85);margin-top:3px;line-height:1.35;">✎ ${esc(note)}</div>`:''}</div>
         ${timeCol}
         <div data-dp-act="current" data-id="${s.id}" title="Als aktuell gedrehte Szene markieren" style="cursor:pointer;flex:none;height:32px;padding:0 12px;border-radius:8px;display:flex;align-items:center;gap:6px;font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;background:${isCur?'oklch(0.6 0.21 25)':'#26282d'};border:1px solid ${isCur?'oklch(0.6 0.21 25)':'#34373e'};color:${isCur?'#fff':'#9a9ca3'};">${isCur?'● JETZT':'JETZT'}</div>
         ${moveOpts.length?`<select data-moveday="${s.id}" title="Auf anderen Drehtag verschieben" style="flex:none;background:#101114;border:1px solid #34373e;border-radius:8px;padding:8px 6px;color:#9a9ca3;font:600 10px 'IBM Plex Mono',monospace;"><option value="">⤳ Tag</option>${moveOpts.join('')}</select>`:''}
@@ -1793,7 +1803,7 @@
         <span style="flex:none;width:${az.no+16}px;font:700 ${az.no}px 'Saira Condensed',sans-serif;color:#f4f3ef;">${a.no}</span>
         <div style="flex:1;min-width:0;"><div style="font:700 ${az.loc}px 'Saira Condensed',sans-serif;text-transform:uppercase;color:#f4f3ef;line-height:1.02;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.loc||'—')}${a.tod?` · ${esc(a.tod)}`:''}</div>${(a.chars&&a.chars.length)||a.kulisse?`<div style="font:500 ${az.ch}px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc((a.chars||[]).join(' · '))}${a.kulisse?`${a.chars&&a.chars.length?'  ·  ':''}Kulisse: ${esc(a.kulisse)}`:''}</div>`:''}</div>
         ${showTimes()?`<div style="flex:none;text-align:right;min-width:58px;margin-right:8px;">${a.start?`<div style="font:700 ${az.loc-4}px 'Saira Condensed',sans-serif;color:#c9cace;line-height:1;">${esc(a.start)}</div>`:''}${a.dur?`<div style="font:600 ${Math.max(az.ch-1,11)}px 'IBM Plex Mono',monospace;color:#6c6e74;">${esc(a.dur)} h</div>`:''}${(!a.done&&!a.cur&&!a.future)?`<div data-cdadj="${a.no}" style="font:600 ${Math.max(az.ch-1,11)}px 'IBM Plex Mono',monospace;color:oklch(0.72 0.2 25);"></div>`:''}</div>`:''}
-        ${a.cur?`<span style="flex:none;font:700 ${az.tag}px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:oklch(0.82 0.16 25);">JETZT</span>`:(a.done?`<span style="flex:none;font:700 ${az.tag+6}px 'IBM Plex Mono',monospace;color:${ACC};">✓</span>`:`<span style="flex:none;font:600 ${az.tag-1}px 'IBM Plex Mono',monospace;color:#6c6e74;letter-spacing:.08em;">${a.future?'geplant':'offen'}</span>`)}
+        ${a.cur?`<span style="flex:none;font:700 ${az.tag}px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:oklch(0.82 0.16 25);">JETZT</span>`:(a.done?(a.full?`<span style="flex:none;font:700 ${az.tag+6}px 'IBM Plex Mono',monospace;color:${ACC};">✓</span>`:`<span title="heute abgehakt · Szene wird an einem anderen Drehtag noch weitergedreht" style="flex:none;font:700 ${az.tag+4}px 'IBM Plex Mono',monospace;color:oklch(0.82 0.15 78);">◑</span>`):`<span style="flex:none;font:600 ${az.tag-1}px 'IBM Plex Mono',monospace;color:#6c6e74;letter-spacing:.08em;">${a.future?'geplant':'offen'}</span>`)}
       </div>`; }).join('') : `<div style="color:#6c6e74;font:500 18px 'IBM Plex Mono',monospace;padding:24px 0;">Kein Tagesplan für Drehtag ${agendaDay} – im Reiter „Drehplan" anlegen.</div>`;
     $('boardStage').innerHTML=`
       <div style="position:absolute;top:-340px;left:-220px;width:1100px;height:900px;background:radial-gradient(circle,${ACC} 0%,transparent 64%);opacity:.5;pointer-events:none;"></div>
@@ -1878,7 +1888,7 @@
             <span style="margin-top:5px;flex:none;width:10px;height:10px;border-radius:50%;background:${a.cur?'oklch(0.6 0.21 25)':(a.done?ACC:'#3a3d44')};"></span>
             <span style="flex:none;width:26px;font:700 18px 'Saira Condensed',sans-serif;color:#f4f3ef;text-align:center;">${a.no}</span>
             <div style="flex:1;min-width:0;"><div style="font:700 16px 'Saira Condensed',sans-serif;text-transform:uppercase;color:#f4f3ef;line-height:1.1;">${esc(a.loc||'—')}${a.tod?` · ${esc(a.tod)}`:''}${a.cur?` <span style="color:oklch(0.82 0.16 25);font-size:11px;">● JETZT</span>`:''}</div>${(a.chars&&a.chars.length)||a.kulisse?`<div style="font:500 11px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:2px;line-height:1.4;">${esc((a.chars||[]).join(' · '))}${a.kulisse?`${a.chars&&a.chars.length?' · ':''}Kulisse: ${esc(a.kulisse)}`:''}</div>`:''}</div>
-            ${showTimes()&&a.start?`<span style="flex:none;margin-top:2px;font:700 12px 'Saira Condensed',sans-serif;color:#c9cace;">${esc(a.start)}</span>`:''}${a.done?`<span style="flex:none;margin-top:2px;color:${ACC};font:700 15px 'IBM Plex Mono',monospace;">✓</span>`:''}
+            ${showTimes()&&a.start?`<span style="flex:none;margin-top:2px;font:700 12px 'Saira Condensed',sans-serif;color:#c9cace;">${esc(a.start)}</span>`:''}${a.done?(a.full?`<span style="flex:none;margin-top:2px;color:${ACC};font:700 15px 'IBM Plex Mono',monospace;">✓</span>`:`<span title="noch nicht ganz fertig" style="flex:none;margin-top:2px;color:oklch(0.82 0.15 78);font:700 15px 'IBM Plex Mono',monospace;">◑</span>`):''}
           </div>`; }).join('')||`<div style="color:#6c6e74;font:500 12px 'IBM Plex Mono',monospace;padding:10px 0;">Kein Tagesplan für diesen Tag – im Reiter „Drehplan" anlegen.</div>`}</div>
         </div>
         <div style="text-align:center;color:#5a5d64;font:400 10px 'IBM Plex Mono',monospace;line-height:1.6;padding:4px 0 8px;">XY Pictures · Heinrich-Hertz-Gymnasium · Live</div>
