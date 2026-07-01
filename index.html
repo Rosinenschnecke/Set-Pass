@@ -324,7 +324,7 @@
   };
 
   const FILM_DEFAULT = 'The Massacre of Love';
-  const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null, plan:null, stage:null };
+  const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null, plan:null, plans:null, stage:null, agenda:null };
   const BACK_DEFAULTS = {
     schedule:[{a:'08:00',b:'Treffpunkt & Check-in'},{a:'08:15',b:'Maske & Kostüm'},{a:'09:00',b:'Setbau / Einleuchten'},{a:'09:30',b:'Drehbeginn · Call',hot:true},{a:'13:00',b:'Mittagspause · Catering'},{a:'13:45',b:'Weiter am Set'},{a:'17:30',b:'Wrap · Sichtung',hot:true},{a:'18:00',b:'Set-Rückbau'}],
     rooms:[{a:'Basis / Crew',b:'R. 014'},{a:'Maske & Kostüm',b:'R. 011'},{a:'Catering',b:'Mensa'},{a:'Technik-Lager',b:'R. 109'},{a:'Cast-Aufenthalt',b:'Aula'},{a:'Set heute',b:'Trakt B'},{a:'Erste Hilfe',b:'Sekret. EG',hot:true}],
@@ -563,8 +563,9 @@
     if((DB.board && DB.board.sceneSet===SCENE_SET_ID) || lsFlag===SCENE_SET_ID){ if(DB.board) DB.board.sceneSet=SCENE_SET_ID; return false; }
     DB.scenes = SCENES_IMPORT.map(s=>({...s, ch:[...s.ch]}));
     DB.board.scenes = SCENES_IMPORT.map(s=>({id:'s'+s.no, no:s.no, title:s.loc, done:false, doneAt:null, hidden:false}));
-    const day1nos = SCENES_IMPORT.filter(s=>s.day===1).map(s=>s.no);
-    DB.board.plan = DB.board.scenes.filter(s=>day1nos.includes(s.no)).map(s=>s.id);   // day-1 plan
+    DB.board.plans = {};   // one remembered plan per Drehtag
+    for(let dd=1; dd<=6; dd++){ const nos=SCENES_IMPORT.filter(s=>s.day===dd).map(s=>s.no); DB.board.plans[dd]=DB.board.scenes.filter(s=>nos.includes(s.no)).map(s=>s.id); }
+    DB.board.plan = null;
     const crew = DB.people.filter(p=>!p.guest).length;
     DB.board.scenesTotal = String(SCENES_IMPORT.length);
     DB.board.current = null;
@@ -586,12 +587,13 @@
     if(!DB.board||typeof DB.board!=='object') return;
     const sc=bScenes(); let changed=false;
     sc.forEach(s=>{ if(typeof s.hidden!=='boolean'){ s.hidden=false; changed=true; } });
-    if(!Array.isArray(DB.board.plan)){
-      const dn=num(DB.board.dayNum)||1;
-      const nos=(Array.isArray(DB.scenes)?DB.scenes:[]).filter(x=>x.day===dn).map(x=>x.no);
-      DB.board.plan = sc.filter(s=>nos.includes(s.no)&&!s.hidden).map(s=>s.id);
-      changed=true;
+    if(!DB.board.plans || typeof DB.board.plans!=='object'){
+      DB.board.plans={};
+      for(let dd=1; dd<=6; dd++){ DB.board.plans[dd]=defaultDayPlan(dd); }
+      if(Array.isArray(DB.board.plan)) DB.board.plans[String(num(DB.board.dayNum)||1)]=DB.board.plan;   // keep legacy single plan
+      DB.board.plan=null; changed=true;
     }
+    if(ensureDayPlan(num(DB.board.dayNum)||1)) changed=true;
     refreshStage();
     if(changed){ LS.board(); Cloud.schedule(); }
   }
@@ -1160,14 +1162,25 @@
   }
   function bScenes(){ return Array.isArray(DB.board.scenes)?DB.board.scenes:[]; }
   function visScenes(){ return bScenes().filter(s=>!s.hidden); }               // counted scenes (not hidden)
-  function bPlan(){ return Array.isArray(DB.board.plan)?DB.board.plan:[]; }
+  // Each Drehtag keeps its own remembered plan (board.plans[day]); switching days
+  // must NOT regenerate it, so edits (incl. deleting everything) persist per day.
+  function dpDay(){ return String(num(DB.board.dayNum)||1); }
+  function plansObj(){ if(!DB.board.plans||typeof DB.board.plans!=='object') DB.board.plans={}; return DB.board.plans; }
+  function defaultDayPlan(day){ const nos=(Array.isArray(DB.scenes)?DB.scenes:[]).filter(x=>x.day===day).map(x=>x.no); return bScenes().filter(s=>nos.includes(s.no)&&!s.hidden).sort((a,b)=>nos.indexOf(a.no)-nos.indexOf(b.no)).map(s=>s.id); }
+  function ensureDayPlan(day){ const p=plansObj(), k=String(day); if(!Array.isArray(p[k])){ p[k]=defaultDayPlan(day); return true; } return false; }
+  function bPlan(){ const p=plansObj()[dpDay()]; return Array.isArray(p)?p:[]; }
+  function setPlan(arr){ plansObj()[dpDay()]=arr; }
   function planScenes(){ const m=new Map(bScenes().map(s=>[s.id,s])); return bPlan().map(id=>m.get(id)).filter(s=>s&&!s.hidden); }
   function sceneRich(no){ return (Array.isArray(DB.scenes)?DB.scenes:[]).find(x=>x.no===no)||null; }
   function planNextId(){ for(const id of bPlan()){ const s=bScenes().find(x=>x.id===id); if(s&&!s.done&&!s.hidden&&id!==DB.board.current) return id; } return null; }
   function stageOf(id){ if(!id) return null; const s=bScenes().find(x=>x.id===id); if(!s) return null; const r=sceneRich(s.no); return { no:s.no, loc:(r&&r.loc)||s.title||'', tod:(r&&r.tod)||'', kulisse:(r&&r.kulisse)||'', chars:(r&&Array.isArray(r.ch))?r.ch:[] }; }
-  // Snapshot current + next scene (incl. location & characters) into the board so
-  // BOTH the in-app and the public board can show them without the full script.
-  function refreshStage(){ DB.board.stage = { cur:stageOf(DB.board.current), next:stageOf(planNextId()) }; }
+  // Snapshot current + next scene AND the whole day agenda (loc + cast) into the
+  // board so BOTH the in-app and public board can show them without the full script.
+  function refreshStage(){
+    DB.board.stage = { cur:stageOf(DB.board.current), next:stageOf(planNextId()) };
+    DB.board.agenda = planScenes().map(s=>{ const t=stageOf(s.id)||{}; return { no:s.no, loc:t.loc||'', tod:t.tod||'', kulisse:t.kulisse||'', chars:t.chars||[], done:!!s.done, cur:s.id===DB.board.current }; });
+    DB.board.agendaDay = dpDay();
+  }
   function boardChanged(){ Store.saveBoard(); renderDrehplan(); if(boardOpen) renderBoard(); }
   function dpToggle(id){ const t=todayKey(); DB.board.scenes=bScenes().map(s=>s.id===id?{...s,done:!s.done,doneAt:!s.done?t:null}:s); refreshStage(); boardChanged(); flashToast(); }
   function dpRename(id,v){ const sc=bScenes().find(s=>s.id===id); DB.board.scenes=bScenes().map(s=>s.id===id?{...s,title:v}:s); if(sc){ const r=(DB.scenes||[]).find(x=>x.no===sc.no); if(r) r.loc=v; } refreshStage(); Store.saveBoard(); Store.saveScenes(); if(boardOpen) renderBoard(); }
@@ -1182,19 +1195,22 @@
     if(field==='loc'){ DB.board.scenes=bScenes().map(b=>b.no===no?{...b,title:value}:b); LS.board(); }
     refreshStage(); LS.scenes(); Cloud.schedule(); if(boardOpen) renderBoard();
   }
-  function dpRemove(id){ if(DB.board.current===id) DB.board.current=null; DB.board.plan=bPlan().filter(x=>x!==id); DB.board.scenes=bScenes().filter(s=>s.id!==id); refreshStage(); boardChanged(); flashToast(); }
+  function dpRemove(id){ if(DB.board.current===id) DB.board.current=null; const p=plansObj(); Object.keys(p).forEach(k=>{ if(Array.isArray(p[k])) p[k]=p[k].filter(x=>x!==id); }); DB.board.scenes=bScenes().filter(s=>s.id!==id); refreshStage(); boardChanged(); flashToast(); }
   function dpCurrent(id){ DB.board.current = (DB.board.current===id ? null : id); refreshStage(); boardChanged(); flashToast(); }
   function dpHide(id){ DB.board.scenes=bScenes().map(s=>s.id===id?{...s,hidden:!s.hidden}:s); if(DB.board.current===id) DB.board.current=null; refreshStage(); boardChanged(); flashToast(); }
   function dpAdd(){ const sc=bScenes().slice(); const maxNo=sc.reduce((m,s)=>Math.max(m,s.no||0),0); const ns={id:'s'+Date.now(),no:maxNo+1,title:'',done:false,doneAt:null,hidden:false}; sc.push(ns); DB.board.scenes=sc; boardChanged(); const inp=$('dpBody').querySelector(`input[data-scene="${ns.id}"]`); if(inp){ inp.focus(); } }
-  function dpBump(field,delta,min){ const v=Math.max(min!=null?min:0, num(DB.board[field])+delta); DB.board[field]=String(v); Store.saveBoard(); renderDrehplan(); if(boardOpen) renderBoard(); flashToast(); }
+  function dpBump(field,delta,min){ const v=Math.max(min!=null?min:0, num(DB.board[field])+delta); DB.board[field]=String(v); if(field==='dayNum'){ ensureDayPlan(v); refreshStage(); } Store.saveBoard(); renderDrehplan(); if(boardOpen) renderBoard(); flashToast(); }
   function dpSetMaterial(v){ const n=Math.max(0, parseInt(v,10)||0); DB.board.minutesShot=String(n); Store.saveBoard(); if(boardOpen) renderBoard(); }
   function dpSetFilter(f){ DP.filter=f; renderDrehplan(); }
   // ---- Tagesplan (today's shooting plan → drives "nächste Szene" & progress) ----
-  function dpPlanAdd(id){ if(id && !bPlan().includes(id)){ DB.board.plan=[...bPlan(),id]; refreshStage(); boardChanged(); } }
+  function dpPlanAdd(id){ if(id && !bPlan().includes(id)){ setPlan([...bPlan(),id]); refreshStage(); boardChanged(); } }
   function dpPlanToggle(id){ if(bPlan().includes(id)) dpPlanRemove(id); else dpPlanAdd(id); }
-  function dpPlanRemove(id){ DB.board.plan=bPlan().filter(x=>x!==id); refreshStage(); boardChanged(); }
-  function dpPlanMove(id,delta){ const p=bPlan().slice(); const i=p.indexOf(id), j=i+delta; if(i<0||j<0||j>=p.length) return; [p[i],p[j]]=[p[j],p[i]]; DB.board.plan=p; refreshStage(); boardChanged(); }
-  function dpLoadDay(day){ const nos=(Array.isArray(DB.scenes)?DB.scenes:[]).filter(x=>x.day===day).map(x=>x.no); const ids=bScenes().filter(s=>nos.includes(s.no)&&!s.hidden).sort((a,b)=>nos.indexOf(a.no)-nos.indexOf(b.no)).map(s=>s.id); DB.board.plan=ids; DB.board.dayNum=String(day); refreshStage(); boardChanged(); flashToast(); }
+  function dpPlanRemove(id){ setPlan(bPlan().filter(x=>x!==id)); refreshStage(); boardChanged(); }
+  function dpPlanMove(id,delta){ const p=bPlan().slice(); const i=p.indexOf(id), j=i+delta; if(i<0||j<0||j>=p.length) return; [p[i],p[j]]=[p[j],p[i]]; setPlan(p); refreshStage(); boardChanged(); }
+  // Switch to a Drehtag WITHOUT regenerating its plan (remembers per-day edits).
+  function dpSwitchDay(day){ DB.board.dayNum=String(day); ensureDayPlan(day); refreshStage(); boardChanged(); flashToast(); }
+  // Explicitly (re)load the current day's plan from the Drehplan template.
+  function dpResetDay(){ const day=num(DB.board.dayNum)||1; plansObj()[String(day)]=defaultDayPlan(day); refreshStage(); boardChanged(); flashToast(); }
 
   function dpSceneDetailHTML(no){
     const r=(DB.scenes||[]).find(x=>x.no===no)||{};
@@ -1240,7 +1256,7 @@
       </div>`; }).join('') || `<div style="text-align:center;color:#6c6e74;font:500 14px 'IBM Plex Mono',monospace;padding:30px 0;">Keine Szenen in dieser Ansicht.</div>`;
     // Tagesplan
     const next=DB.board.stage&&DB.board.stage.next;
-    const dayBtns=[1,2,3,4,5,6].map(dv=>`<div data-dp-act="loadday" data-day="${dv}" title="Szenen von Drehtag ${dv} laden" style="cursor:pointer;min-width:38px;height:34px;padding:0 10px;border-radius:8px;background:${num(DB.board.dayNum)===dv?ACC:'#26282d'};border:1px solid ${num(DB.board.dayNum)===dv?ACC:'#34373e'};display:flex;align-items:center;justify-content:center;font:700 13px 'Saira Condensed',sans-serif;letter-spacing:.05em;color:${num(DB.board.dayNum)===dv?'#0c0d10':'#c9cace'};">T${dv}</div>`).join('');
+    const dayBtns=[1,2,3,4,5,6].map(dv=>`<div data-dp-act="switchday" data-day="${dv}" title="Zu Drehtag ${dv} wechseln" style="cursor:pointer;min-width:38px;height:34px;padding:0 10px;border-radius:8px;background:${num(DB.board.dayNum)===dv?ACC:'#26282d'};border:1px solid ${num(DB.board.dayNum)===dv?ACC:'#34373e'};display:flex;align-items:center;justify-content:center;font:700 13px 'Saira Condensed',sans-serif;letter-spacing:.05em;color:${num(DB.board.dayNum)===dv?'#0c0d10':'#c9cace'};">T${dv}</div>`).join('')+`<div data-dp-act="resetday" title="Diesen Drehtag aus der Drehplan-Vorlage neu laden" style="cursor:pointer;height:34px;padding:0 11px;border-radius:8px;background:#26282d;border:1px solid #34373e;display:flex;align-items:center;justify-content:center;font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#9a9ca3;">↺ VORLAGE</div>`;
     const planRows=plan.length?plan.map((s,i)=>{ const r=sceneRich(s.no); const chs=(r&&r.ch&&r.ch.length)?r.ch.join(', '):'—'; const isCur=s.id===cur; return `<div style="display:flex;align-items:center;gap:9px;background:${s.done?'oklch(0.24 0.05 155)':'#16171b'};border:1px solid ${isCur?'oklch(0.6 0.21 25)':'#2a2c31'};border-radius:10px;padding:8px 10px;">
         <div data-dp-act="toggle" data-id="${s.id}" style="cursor:pointer;flex:none;width:30px;height:30px;border-radius:8px;border:2px solid ${s.done?ACC:'#3a3d44'};background:${s.done?ACC:'transparent'};display:flex;align-items:center;justify-content:center;color:#0c0d10;font:700 16px 'IBM Plex Mono',monospace;">${s.done?'✓':''}</div>
         <span style="flex:none;width:24px;font:700 16px 'Saira Condensed',sans-serif;color:#8a8d94;text-align:center;">${s.no}</span>
@@ -1248,7 +1264,7 @@
         <span data-dp-act="planmove" data-id="${s.id}" data-dir="-1" title="nach oben" style="cursor:pointer;flex:none;font-size:11px;color:#8a8d94;padding:4px 6px;${i===0?'opacity:.25;pointer-events:none;':''}">▲</span>
         <span data-dp-act="planmove" data-id="${s.id}" data-dir="1" title="nach unten" style="cursor:pointer;flex:none;font-size:11px;color:#8a8d94;padding:4px 6px;${i===plan.length-1?'opacity:.25;pointer-events:none;':''}">▼</span>
         <div data-dp-act="planremove" data-id="${s.id}" title="Aus Tagesplan entfernen" style="cursor:pointer;flex:none;width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#5a5d64;font:400 15px 'IBM Plex Mono',monospace;">✕</div>
-      </div>`;}).join('') : `<div style="text-align:center;color:#6c6e74;font:500 13px 'IBM Plex Mono',monospace;padding:16px 0;">Noch keine Szenen im Tagesplan – lade oben einen Drehtag oder füge unten Szenen hinzu.</div>`;
+      </div>`;}).join('') : `<div style="text-align:center;color:#6c6e74;font:500 13px 'IBM Plex Mono',monospace;padding:16px 0;">Tagesplan leer – füge unten Szenen hinzu oder lade die Vorlage (↺).</div>`;
     const addOpts=vis.filter(s=>!planIds.has(s.id)).map(s=>`<option value="${s.id}">SZ ${s.no} · ${esc(s.title)}</option>`).join('');
     const matBtns=[['−1',-1,'#26282d','#34373e','#c9cace'],['+1',1,'#26282d','#34373e','#f4f3ef'],['+5',5,'oklch(0.28 0.05 210)','oklch(0.45 0.08 210)','#dff'],['+10',10,'oklch(0.7 0.12 210)','oklch(0.7 0.12 210)','#0c0d10']].map(([l,dl,bg,bd,fg])=>`<div data-dp-act="mat" data-d="${dl}" style="cursor:pointer;min-width:52px;height:48px;padding:0 14px;border-radius:11px;background:${bg};border:1px solid ${bd};display:flex;align-items:center;justify-content:center;font:700 18px 'Saira Condensed',sans-serif;color:${fg};">${l}</div>`).join('');
     const steppers=[['Aktueller Drehtag','dayNum',0],['Drehtage gesamt','dayTotal',1],['Teilnehmer:innen','participants',0]].map(([label,field,min])=>`<div style="background:#1b1d22;border:1px solid #2a2c31;border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;"><div style="flex:1;min-width:0;"><div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#9a9ca3;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div><div style="font:700 40px 'Saira Condensed',sans-serif;line-height:.9;margin-top:4px;">${num(DB.board[field])}</div></div><div style="display:flex;gap:7px;flex:none;"><div data-dp-act="step" data-field="${field}" data-d="-1" data-min="${min}" style="cursor:pointer;width:46px;height:46px;border-radius:11px;background:#26282d;border:1px solid #34373e;display:flex;align-items:center;justify-content:center;font:600 26px 'IBM Plex Mono',monospace;color:#c9cace;">−</div><div data-dp-act="step" data-field="${field}" data-d="1" data-min="${min}" style="cursor:pointer;width:46px;height:46px;border-radius:11px;background:${ACC};border:1px solid ${ACC};display:flex;align-items:center;justify-content:center;font:600 26px 'IBM Plex Mono',monospace;color:#0c0d10;">+</div></div></div>`).join('');
@@ -1324,7 +1340,8 @@
       if(act==='plan') return dpPlanToggle(a.getAttribute('data-id'));
       if(act==='planremove') return dpPlanRemove(a.getAttribute('data-id'));
       if(act==='planmove') return dpPlanMove(a.getAttribute('data-id'), parseInt(a.getAttribute('data-dir')));
-      if(act==='loadday') return dpLoadDay(parseInt(a.getAttribute('data-day')));
+      if(act==='switchday') return dpSwitchDay(parseInt(a.getAttribute('data-day')));
+      if(act==='resetday') return dpResetDay();
       if(act==='add') return dpAdd();
       if(act==='mat') return dpBump('minutesShot', parseInt(a.getAttribute('data-d')), 0);
       if(act==='step') return dpBump(a.getAttribute('data-field'), parseInt(a.getAttribute('data-d')), num(a.getAttribute('data-min')));
@@ -1366,6 +1383,13 @@
     const pips=Array.from({length:Math.min(Math.max(dt,0),16)},(_,i)=>`<span style="flex:1;min-width:14px;height:14px;border-radius:4px;background:${i<dn?'oklch(0.6 0.18 290)':'#26282d'};transition:background .5s;"></span>`).join('');
     const c=clockParts();
     const tiles=[['participants','oklch(0.62 0.13 245)','Teilnehmer:innen',num(d.participants),'','Schüler:innen & Betreuung'],['minutesShot','oklch(0.7 0.12 210)','Material',num(d.minutesShot),'Min','gedreht gesamt']].map(([key,acc,eye,val,unit,sub])=>`<div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:28px 30px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="display:flex;align-items:center;gap:11px;"><span style="width:10px;height:10px;background:${acc};transform:rotate(45deg);display:block;flex:none;"></span><span style="font:600 15px 'IBM Plex Mono',monospace;letter-spacing:.15em;color:#9a9ca3;text-transform:uppercase;">${eye}</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:8px;"><span style="font:700 88px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.76;">${odo(val, prev?prev[key]:null)}</span>${unit?`<span style="font:600 22px 'Saira Condensed',sans-serif;color:${acc};letter-spacing:.04em;text-transform:uppercase;">${unit}</span>`:''}</div><div style="font:500 14px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:12px;letter-spacing:.02em;line-height:1.35;">${sub}</div></div>`).join('');
+    const agenda=Array.isArray(d.agenda)?d.agenda:[]; const agendaDay=d.agendaDay||dn;
+    const agendaRows = agenda.length ? agenda.map(a=>`<div style="display:flex;align-items:center;gap:14px;padding:6px 0;border-bottom:1px solid #23252b;${a.done?'opacity:.4;':''}">
+        <span style="flex:none;width:12px;height:12px;border-radius:50%;background:${a.cur?'oklch(0.6 0.21 25)':(a.done?ACC:'#3a3d44')};${a.cur?'animation:livedot 1.2s ease-in-out infinite;':''}"></span>
+        <span style="flex:none;width:44px;font:700 25px 'Saira Condensed',sans-serif;color:#f4f3ef;">${a.no}</span>
+        <div style="flex:1;min-width:0;"><div style="font:700 21px 'Saira Condensed',sans-serif;text-transform:uppercase;color:#f4f3ef;line-height:1.02;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.loc||'—')}${a.tod?` · ${esc(a.tod)}`:''}</div>${(a.chars&&a.chars.length)||a.kulisse?`<div style="font:500 13px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc((a.chars||[]).join(' · '))}${a.kulisse?`${a.chars&&a.chars.length?'  ·  ':''}Kulisse: ${esc(a.kulisse)}`:''}</div>`:''}</div>
+        ${a.cur?`<span style="flex:none;font:700 13px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:oklch(0.82 0.16 25);">JETZT</span>`:(a.done?`<span style="flex:none;font:700 20px 'IBM Plex Mono',monospace;color:${ACC};">✓</span>`:`<span style="flex:none;font:600 12px 'IBM Plex Mono',monospace;color:#6c6e74;letter-spacing:.08em;">offen</span>`)}
+      </div>`).join('') : `<div style="color:#6c6e74;font:500 18px 'IBM Plex Mono',monospace;padding:24px 0;">Kein Tagesplan für Drehtag ${agendaDay}.</div>`;
     $('boardStage').innerHTML=`
       <div style="position:absolute;top:-340px;left:-220px;width:1100px;height:900px;background:radial-gradient(circle,${ACC} 0%,transparent 64%);opacity:.5;pointer-events:none;"></div>
       <div style="position:relative;height:100%;padding:52px;display:flex;flex-direction:column;">
@@ -1375,19 +1399,25 @@
         </div>
         <div style="flex:1;display:flex;flex-direction:column;gap:24px;padding-top:24px;min-height:0;">
           ${banner}
-          <div style="height:440px;flex:none;display:flex;gap:28px;">
-            <div style="flex:1.42;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:44px 48px;display:flex;flex-direction:column;position:relative;overflow:hidden;">
+          <div style="height:366px;flex:none;display:flex;gap:28px;">
+            <div style="flex:1.42;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:30px 40px;display:flex;flex-direction:column;position:relative;overflow:hidden;">
               <div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:13px;"><span style="width:13px;height:13px;background:${ACC};transform:rotate(45deg);display:block;"></span><span style="font:600 20px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Szenen im Kasten</span></div><span style="font:500 16px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a8d94;text-transform:uppercase;">Gesamt ${st} Szenen</span></div>
-              <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;"><div style="display:flex;align-items:baseline;gap:4px;"><span style="font:700 200px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.8;letter-spacing:-.01em;">${odo(sd, prev?prev.sd:null)}</span><span style="font:600 80px 'Saira Condensed',sans-serif;color:#6c6e74;line-height:.8;">/${st}</span></div><span style="font:700 116px 'Saira Condensed',sans-serif;color:${ACC};line-height:.78;">${odo(pct, prev?prev.pct:null)}<span style="font-size:52px;color:#8a8d94;">%</span></span></div>
-              <div style="margin-top:30px;height:34px;background:#26282d;border-radius:9px;overflow:hidden;"><div id="boardHeroBar" style="height:100%;width:${heroStart}%;background:${ACC};border-radius:9px;transition:width .8s cubic-bezier(.2,.7,.2,1);position:relative;overflow:hidden;"><div style="position:absolute;top:0;bottom:0;left:0;width:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);animation:barshine 2.6s ease-in-out infinite;"></div></div></div>
-              <div style="margin-top:22px;display:flex;align-items:center;gap:12px;"><span style="width:9px;height:9px;background:${ACC};transform:rotate(45deg);display:block;"></span><span style="font:600 27px 'Saira Condensed',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#f4f3ef;">${esc(encourage(pct))}</span></div>
+              <div style="margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;"><div style="display:flex;align-items:baseline;gap:4px;"><span style="font:700 150px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.8;letter-spacing:-.01em;">${odo(sd, prev?prev.sd:null)}</span><span style="font:600 62px 'Saira Condensed',sans-serif;color:#6c6e74;line-height:.8;">/${st}</span></div><span style="font:700 92px 'Saira Condensed',sans-serif;color:${ACC};line-height:.78;">${odo(pct, prev?prev.pct:null)}<span style="font-size:42px;color:#8a8d94;">%</span></span></div>
+              <div style="margin-top:20px;height:28px;background:#26282d;border-radius:9px;overflow:hidden;"><div id="boardHeroBar" style="height:100%;width:${heroStart}%;background:${ACC};border-radius:9px;transition:width .8s cubic-bezier(.2,.7,.2,1);position:relative;overflow:hidden;"><div style="position:absolute;top:0;bottom:0;left:0;width:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);animation:barshine 2.6s ease-in-out infinite;"></div></div></div>
+              <div style="margin-top:16px;display:flex;align-items:center;gap:12px;"><span style="width:9px;height:9px;background:${ACC};transform:rotate(45deg);display:block;"></span><span style="font:600 24px 'Saira Condensed',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#f4f3ef;">${esc(encourage(pct))}</span></div>
             </div>
             <div style="flex:1;display:flex;flex-direction:column;gap:28px;min-width:0;">
-              <div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:30px 34px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;bottom:0;width:6px;background:oklch(0.8 0.16 78);"></div><div style="display:flex;align-items:center;gap:12px;"><span style="width:11px;height:11px;background:oklch(0.8 0.16 78);transform:rotate(45deg);display:block;"></span><span style="font:600 17px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Heute noch</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:16px;"><span style="font:700 110px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.74;">${odo(remaining, prev?prev.remaining:null)}</span><div><div style="font:600 27px 'Saira Condensed',sans-serif;color:oklch(0.84 0.13 78);text-transform:uppercase;letter-spacing:.03em;line-height:1;">offene Szenen</div><div style="font:500 15px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:7px;">${hd} von ${hp} heute geschafft</div></div></div><div style="margin-top:18px;height:10px;background:#26282d;border-radius:5px;overflow:hidden;"><div id="boardHeuteBar" style="height:100%;width:${heuteStart}%;background:oklch(0.8 0.16 78);border-radius:5px;transition:width .8s cubic-bezier(.2,.7,.2,1);"></div></div></div>
-              <div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:30px 34px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;bottom:0;width:6px;background:oklch(0.6 0.18 290);"></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:12px;"><span style="width:11px;height:11px;background:oklch(0.6 0.18 290);transform:rotate(45deg);display:block;"></span><span style="font:600 17px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Drehtag</span></div><span style="font:500 15px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.04em;">noch ${Math.max(dt-dn,0)} Drehtage</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:4px;"><span style="font:700 110px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.74;">${odo(dn, prev?prev.dn:null)}</span><span style="font:600 52px 'Saira Condensed',sans-serif;color:#6c6e74;line-height:.8;">/${dt}</span></div><div style="margin-top:20px;display:flex;gap:7px;flex-wrap:wrap;">${pips}</div></div>
+              <div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:22px 28px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;bottom:0;width:6px;background:oklch(0.8 0.16 78);"></div><div style="display:flex;align-items:center;gap:12px;"><span style="width:11px;height:11px;background:oklch(0.8 0.16 78);transform:rotate(45deg);display:block;"></span><span style="font:600 17px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Heute noch</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:16px;"><span style="font:700 84px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.74;">${odo(remaining, prev?prev.remaining:null)}</span><div><div style="font:600 27px 'Saira Condensed',sans-serif;color:oklch(0.84 0.13 78);text-transform:uppercase;letter-spacing:.03em;line-height:1;">offene Szenen</div><div style="font:500 15px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:7px;">${hd} von ${hp} heute geschafft</div></div></div><div style="margin-top:18px;height:10px;background:#26282d;border-radius:5px;overflow:hidden;"><div id="boardHeuteBar" style="height:100%;width:${heuteStart}%;background:oklch(0.8 0.16 78);border-radius:5px;transition:width .8s cubic-bezier(.2,.7,.2,1);"></div></div></div>
+              <div style="flex:1;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:22px 28px;display:flex;flex-direction:column;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;bottom:0;width:6px;background:oklch(0.6 0.18 290);"></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:12px;"><span style="width:11px;height:11px;background:oklch(0.6 0.18 290);transform:rotate(45deg);display:block;"></span><span style="font:600 17px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#c9cace;text-transform:uppercase;">Drehtag</span></div><span style="font:500 15px 'IBM Plex Mono',monospace;color:#9a9ca3;letter-spacing:.04em;">noch ${Math.max(dt-dn,0)} Drehtage</span></div><div style="margin-top:auto;display:flex;align-items:baseline;gap:4px;"><span style="font:700 84px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.74;">${odo(dn, prev?prev.dn:null)}</span><span style="font:600 52px 'Saira Condensed',sans-serif;color:#6c6e74;line-height:.8;">/${dt}</span></div><div style="margin-top:20px;display:flex;gap:7px;flex-wrap:wrap;">${pips}</div></div>
             </div>
           </div>
-          <div style="flex:1;display:flex;gap:28px;min-height:0;">${tiles}</div>
+          <div style="flex:1;display:flex;gap:28px;min-height:0;">
+            <div style="flex:1.75;background:#1b1d22;border:1px solid #2a2c31;border-radius:20px;padding:26px 34px;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex:none;"><div style="display:flex;align-items:center;gap:13px;"><span style="width:13px;height:13px;background:oklch(0.8 0.16 78);transform:rotate(45deg);display:block;"></span><span style="font:600 20px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#c9cace;text-transform:uppercase;">Anstehende Szenen · Drehtag ${agendaDay}</span></div><span style="font:500 14px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#8a8d94;text-transform:uppercase;">Ort & Besetzung</span></div>
+              <div style="margin-top:8px;overflow:hidden;flex:1;min-height:0;display:grid;grid-template-columns:${agenda.length>4?'1fr 1fr':'1fr'};gap:0 36px;align-content:start;">${agendaRows}</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:28px;min-width:0;">${tiles}</div>
+          </div>
         </div>
       </div>`;
     // animate progress bars + roll the changed numbers
@@ -1435,6 +1465,15 @@
           <div style="${card}padding:14px 16px;border-left:5px solid oklch(0.6 0.18 290);"><div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#9a9ca3;text-transform:uppercase;">Drehtag</div><div style="display:flex;align-items:baseline;gap:4px;margin-top:6px;"><span style="font:700 44px 'Saira Condensed',sans-serif;line-height:.8;">${dn}</span><span style="font:600 20px 'Saira Condensed',sans-serif;color:#6c6e74;">/${dt}</span></div><div style="font:500 10px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:6px;">noch ${Math.max(dt-dn,0)} Tage</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">${tiles}</div>
+        <div style="${card}padding:16px;border-left:5px solid oklch(0.8 0.16 78);">
+          <div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#9a9ca3;text-transform:uppercase;">Anstehende Szenen · Tag ${dn}</div>
+          <div style="margin-top:6px;">${(Array.isArray(d.agenda)?d.agenda:[]).map(a=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #23252b;${a.done?'opacity:.45;':''}">
+            <span style="flex:none;width:10px;height:10px;border-radius:50%;background:${a.cur?'oklch(0.6 0.21 25)':(a.done?ACC:'#3a3d44')};"></span>
+            <span style="flex:none;width:24px;font:700 17px 'Saira Condensed',sans-serif;color:#f4f3ef;text-align:center;">${a.no}</span>
+            <div style="flex:1;min-width:0;"><div style="font:700 15px 'Saira Condensed',sans-serif;text-transform:uppercase;color:#f4f3ef;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.loc||'—')}${a.tod?` · ${esc(a.tod)}`:''}</div>${(a.chars&&a.chars.length)||a.kulisse?`<div style="font:500 10px 'IBM Plex Mono',monospace;color:#8a8d94;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc((a.chars||[]).join(' · '))}${a.kulisse?`${a.chars&&a.chars.length?' · ':''}Kulisse: ${esc(a.kulisse)}`:''}</div>`:''}</div>
+            ${a.cur?`<span style="flex:none;font:700 9px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:oklch(0.82 0.16 25);">JETZT</span>`:(a.done?`<span style="flex:none;color:${ACC};font:700 14px 'IBM Plex Mono',monospace;">✓</span>`:'')}
+          </div>`).join('')||`<div style="color:#6c6e74;font:500 12px 'IBM Plex Mono',monospace;padding:10px 0;">Kein Tagesplan für diesen Tag.</div>`}</div>
+        </div>
         <div style="text-align:center;color:#5a5d64;font:400 10px 'IBM Plex Mono',monospace;line-height:1.6;padding:4px 0 8px;">XY Pictures · Heinrich-Hertz-Gymnasium · Live</div>
       </div>`;
   }
