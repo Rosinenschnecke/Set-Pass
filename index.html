@@ -336,8 +336,8 @@
   };
 
   const FILM_DEFAULT = 'The Massacre of Love';
-  const BUILD = 'v12 · 2026-07-01';   // bump on each deploy so a cached build is obvious
-  const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null, plan:null, plans:null, stage:null, agenda:null, agendaDay:null, todayDone:false, fullPlan:null };
+  const BUILD = 'v13 · 2026-07-01';   // bump on each deploy so a cached build is obvious
+  const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null, plan:null, plans:null, stage:null, agenda:null, agendaDay:null, todayDone:false, fullPlan:null, showTimes:true, dayStart:null, curStart:null };
   const BACK_DEFAULTS = {
     schedule:[{a:'08:00',b:'Treffpunkt & Check-in'},{a:'08:15',b:'Maske & Kostüm'},{a:'09:00',b:'Setbau / Einleuchten'},{a:'09:30',b:'Drehbeginn · Call',hot:true},{a:'13:00',b:'Mittagspause · Catering'},{a:'13:45',b:'Weiter am Set'},{a:'17:30',b:'Wrap · Sichtung',hot:true},{a:'18:00',b:'Set-Rückbau'}],
     rooms:[{a:'Basis / Crew',b:'R. 014'},{a:'Maske & Kostüm',b:'R. 011'},{a:'Catering',b:'Mensa'},{a:'Technik-Lager',b:'R. 109'},{a:'Cast-Aufenthalt',b:'Aula'},{a:'Set heute',b:'Trakt B'},{a:'Erste Hilfe',b:'Sekret. EG',hot:true}],
@@ -1157,7 +1157,7 @@
   }
 
   /* ===================== DREHPLAN-STEUERUNG + BOARD ===================== */
-  const DP = { filter:'all', editing:null };
+  const DP = { filter:'all', editing:null, q:'', actors:[], locs:[], sort:'no' };
   let boardOpen=false, boardTick=null, boardPrev=null, toastT=null, boardPublic=false, boardTab='status';
   const boardIsMobile = ()=> window.matchMedia('(max-width:760px)').matches;
   // Tab bar shown only on the public (QR) board: live status vs. full shooting plan.
@@ -1188,6 +1188,7 @@
           <span style="margin-top:5px;flex:none;width:10px;height:10px;border-radius:50%;background:${a.cur?'oklch(0.6 0.21 25)':(a.done?ACC:'#3a3d44')};"></span>
           <span style="flex:none;width:26px;font:700 18px 'Saira Condensed',sans-serif;color:#f4f3ef;text-align:center;">${a.no}</span>
           <div style="flex:1;min-width:0;"><div style="font:700 16px 'Saira Condensed',sans-serif;text-transform:uppercase;color:#f4f3ef;line-height:1.1;">${esc(a.loc||'—')}${a.tod?` · ${esc(a.tod)}`:''}${a.cur?` <span style="color:oklch(0.82 0.16 25);font-size:11px;">● JETZT</span>`:''}</div>${(a.chars&&a.chars.length)||a.kulisse?`<div style="font:500 11px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:2px;line-height:1.4;">${esc((a.chars||[]).join(' · '))}${a.kulisse?`${a.chars&&a.chars.length?' · ':''}Kulisse: ${esc(a.kulisse)}`:''}</div>`:''}</div>
+          ${showTimes()&&(a.start||a.dur)?`<div style="flex:none;text-align:right;min-width:52px;">${a.start?`<div style="font:700 14px 'Saira Condensed',sans-serif;color:#c9cace;line-height:1;">${esc(a.start)}</div>`:''}${a.dur?`<div style="font:600 10px 'IBM Plex Mono',monospace;color:#6c6e74;">${esc(a.dur)} h</div>`:''}</div>`:''}
           ${a.done?`<span style="flex:none;margin-top:2px;color:${ACC};font:700 15px 'IBM Plex Mono',monospace;">✓</span>`:''}
         </div>`).join('')}</div>
       </div>`).join('') : `<div style="text-align:center;color:#6c6e74;font:500 13px 'IBM Plex Mono',monospace;padding:24px 0;">Noch kein Drehplan angelegt.</div>`;
@@ -1227,9 +1228,25 @@
   function bPlan(){ const p=plansObj()[dpDay()]; return Array.isArray(p)?p:[]; }
   function setPlan(arr){ plansObj()[dpDay()]=arr; }
   function planScenes(){ const m=new Map(bScenes().map(s=>[s.id,s])); return bPlan().map(id=>m.get(id)).filter(s=>s&&!s.hidden); }
+  // --- time helpers ---
+  function durMin(str){ str=String(str==null?'':str).trim(); if(!str) return 0; if(str.includes(':')){ const p=str.split(':'); return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0); } return parseInt(str,10)||0; }
+  function fmtDur(min){ min=Math.max(0,Math.round(min)); return Math.floor(min/60)+':'+String(min%60).padStart(2,'0'); }
+  function mmss(ms){ ms=Math.max(0,ms); const s=Math.round(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+  function hmToMin(str){ str=String(str==null?'':str).trim(); const p=str.split(':'); return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0); }
+  function minToHM(min){ min=((Math.round(min)%1440)+1440)%1440; return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0'); }
+  function dayStartMin(day){ const m=DB.board.dayStart&&DB.board.dayStart[String(day)]; return m?hmToMin(m):540; }   // default 09:00
+  function showTimes(){ return DB.board.showTimes!==false; }
+  // deterministic colour per character (role) for the color-coded chips
+  const CHAR_HUE={};
+  function charColor(name){ const k=String(name||''); if(CHAR_HUE[k]==null){ let h=0; for(let i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))>>>0; CHAR_HUE[k]=h%360; } return `oklch(0.72 0.15 ${CHAR_HUE[k]})`; }
+  function charChip(name,sz){ const c=charColor(name); return `<span style="display:inline-block;font:700 ${sz||10}px 'IBM Plex Mono',monospace;letter-spacing:.02em;color:${c};border:1px solid ${c};border-radius:5px;padding:1px 6px;">${esc(name)}</span>`; }
+  // all characters that appear anywhere (for the actor filter)
+  function allChars(){ const set=new Set(); (Array.isArray(DB.scenes)?DB.scenes:[]).forEach(s=>(s.ch||[]).forEach(c=>set.add(c))); return [...set].sort(); }
+  function allLocs(){ const set=new Set(); (Array.isArray(DB.scenes)?DB.scenes:[]).forEach(s=>{ if(s.loc) set.add(s.loc); }); bScenes().forEach(s=>{ if(s.title&&!set.has(s.title)) set.add(s.title); }); return [...set].sort(); }
+  function sceneDay(no){ const p=plansObj(); for(const k of Object.keys(p)){ if(Array.isArray(p[k])){ for(const id of p[k]){ const b=bScenes().find(x=>x.id===id); if(b&&b.no===no) return parseInt(k,10); } } } const r=sceneRich(no); return r&&r.day||0; }
   function sceneRich(no){ return (Array.isArray(DB.scenes)?DB.scenes:[]).find(x=>x.no===no)||null; }
   function planNextId(){ for(const id of bPlan()){ const s=bScenes().find(x=>x.id===id); if(s&&!s.done&&!s.hidden&&id!==DB.board.current) return id; } return null; }
-  function stageOf(id){ if(!id) return null; const s=bScenes().find(x=>x.id===id); if(!s) return null; const r=sceneRich(s.no); return { no:s.no, loc:(r&&r.loc)||s.title||'', tod:(r&&r.tod)||'', kulisse:(r&&r.kulisse)||'', chars:(r&&Array.isArray(r.ch))?r.ch:[] }; }
+  function stageOf(id){ if(!id) return null; const s=bScenes().find(x=>x.id===id); if(!s) return null; const r=sceneRich(s.no); return { no:s.no, loc:(r&&r.loc)||s.title||'', tod:(r&&r.tod)||'', kulisse:(r&&r.kulisse)||'', chars:(r&&Array.isArray(r.ch))?r.ch:[], dur:(r&&r.dur)||'' }; }
   // Next scene to prepare — first open scene today, else the first open scene on a
   // later Drehtag (so Kostüm/Szenenbild know what's next even when today is done).
   function nextStage(){
@@ -1245,16 +1262,18 @@
   function refreshStage(){
     const ps=planScenes();
     DB.board.stage = { cur:stageOf(DB.board.current), next:nextStage() };
-    DB.board.agenda = ps.map(s=>{ const t=stageOf(s.id)||{}; return { no:s.no, loc:t.loc||'', tod:t.tod||'', kulisse:t.kulisse||'', chars:t.chars||[], done:!!s.done, cur:s.id===DB.board.current }; });
+    let run=dayStartMin(num(DB.board.dayNum)||1);
+    DB.board.agenda = ps.map(s=>{ const t=stageOf(s.id)||{}; const start=minToHM(run); run+=durMin(t.dur); return { no:s.no, loc:t.loc||'', tod:t.tod||'', kulisse:t.kulisse||'', chars:t.chars||[], dur:t.dur||'', start, done:!!s.done, cur:s.id===DB.board.current }; });
     DB.board.agendaDay = dpDay();
     DB.board.todayDone = ps.length>0 && ps.every(s=>s.done);   // whole day wrapped
-    // Full shooting plan (all Drehtage) for the public board's "Drehplan" tab.
+    // Full shooting plan (all Drehtage) with duration + planned clock start.
     const p=plansObj(); const dt=num(DB.board.dayTotal)||6;
     const daySet=new Set(Object.keys(p).map(k=>parseInt(k,10)).filter(x=>x>=1));
     for(let dd=1; dd<=dt; dd++) daySet.add(dd);
     const full=[];
     [...daySet].sort((a,b)=>a-b).forEach(day=>{
-      const arr=(p[String(day)]||[]).map(id=>{ const s=bScenes().find(x=>x.id===id); if(!s||s.hidden) return null; const t=stageOf(id)||{}; return { no:s.no, loc:t.loc||'', tod:t.tod||'', kulisse:t.kulisse||'', chars:t.chars||[], done:!!s.done, cur:s.id===DB.board.current }; }).filter(Boolean);
+      let r2=dayStartMin(day);
+      const arr=(p[String(day)]||[]).map(id=>{ const s=bScenes().find(x=>x.id===id); if(!s||s.hidden) return null; const t=stageOf(id)||{}; const start=minToHM(r2); r2+=durMin(t.dur); return { no:s.no, loc:t.loc||'', tod:t.tod||'', kulisse:t.kulisse||'', chars:t.chars||[], dur:t.dur||'', start, done:!!s.done, cur:s.id===DB.board.current }; }).filter(Boolean);
       if(arr.length) full.push({ day, scenes:arr });
     });
     DB.board.fullPlan=full;
@@ -1275,7 +1294,16 @@
     refreshStage(); LS.scenes(); Cloud.schedule(); if(boardOpen) renderBoard();
   }
   function dpRemove(id){ if(DB.board.current===id) DB.board.current=null; const p=plansObj(); Object.keys(p).forEach(k=>{ if(Array.isArray(p[k])) p[k]=p[k].filter(x=>x!==id); }); DB.board.scenes=bScenes().filter(s=>s.id!==id); refreshStage(); boardChanged(); flashToast(); }
-  function dpCurrent(id){ DB.board.current = (DB.board.current===id ? null : id); refreshStage(); boardChanged(); flashToast(); }
+  function dpCurrent(id){ const on = DB.board.current!==id; DB.board.current = on?id:null; DB.board.curStart = on?Date.now():null; refreshStage(); boardChanged(); flashToast(); }
+  function dpResetTimer(){ if(DB.board.current){ DB.board.curStart=Date.now(); Store.saveBoard(); renderBoardTab(); if(boardOpen) renderBoard(); } }
+  function dpToggleTimes(){ DB.board.showTimes = !showTimes(); Store.saveBoard(); renderBoardTab(); if(boardOpen) renderBoard(); }
+  function dpSetDayStart(v){ if(!DB.board.dayStart||typeof DB.board.dayStart!=='object') DB.board.dayStart={}; DB.board.dayStart[dpDay()]=String(v||'').trim()||'09:00'; refreshStage(); Store.saveBoard(); renderDP(); if(boardOpen) renderBoard(); }
+  // planning-list filters
+  function dpSetQuery(v){ DP.q=String(v||''); renderDrehplan(); const i=$('dpSearch'); if(i){ i.focus(); try{ i.setSelectionRange(i.value.length,i.value.length); }catch(e){} } }
+  function dpToggleActor(a){ const i=DP.actors.indexOf(a); if(i<0) DP.actors.push(a); else DP.actors.splice(i,1); renderDrehplan(); }
+  function dpToggleLoc(l){ const i=DP.locs.indexOf(l); if(i<0) DP.locs.push(l); else DP.locs.splice(i,1); renderDrehplan(); }
+  function dpSetSort(v){ DP.sort=v; renderDrehplan(); }
+  function dpClearFilters(){ DP.q=''; DP.actors=[]; DP.locs=[]; DP.sort='no'; renderDrehplan(); }
   function dpHide(id){ DB.board.scenes=bScenes().map(s=>s.id===id?{...s,hidden:!s.hidden}:s); if(DB.board.current===id) DB.board.current=null; refreshStage(); boardChanged(); flashToast(); }
   function dpAdd(){ const sc=bScenes().slice(); const maxNo=sc.reduce((m,s)=>Math.max(m,s.no||0),0); const ns={id:'s'+Date.now(),no:maxNo+1,title:'',done:false,doneAt:null,hidden:false}; sc.push(ns); DB.board.scenes=sc; boardChanged(); const inp=$('dpBody').querySelector(`input[data-scene="${ns.id}"]`); if(inp){ inp.focus(); } }
   function dpBump(field,delta,min){ const v=Math.max(min!=null?min:0, num(DB.board[field])+delta); DB.board[field]=String(v); if(field==='dayNum'){ ensureDayPlan(v); refreshStage(); } Store.saveBoard(); renderDP(); if(boardOpen) renderBoard(); flashToast(); }
@@ -1300,6 +1328,7 @@
       <label><span style="${lbl}">Ort / Set</span><input data-scfield="loc" data-no="${no}" value="${esc(r.loc||'')}" placeholder="z. B. Pausenraum" style="${inp}"></label>
       <label><span style="${lbl}">Kulisse / Ausstattung</span><input data-scfield="kulisse" data-no="${no}" value="${esc(r.kulisse||'')}" placeholder="z. B. Teeecke, Sitzbänke" style="${inp}"></label>
       <label><span style="${lbl}">Tag / Nacht</span><select data-scfield="tod" data-no="${no}" style="${inp}">${todOpts}</select></label>
+      <label><span style="${lbl}">Dauer (Std:Min)</span><input data-scfield="dur" data-no="${no}" value="${esc(r.dur||'')}" placeholder="z. B. 1:30" style="${inp}"></label>
       <label style="grid-column:1/-1;"><span style="${lbl}">Schauspieler:innen / Figuren</span><input data-scfield="ch" data-no="${no}" value="${esc((r.ch||[]).join(', '))}" placeholder="Namen mit Komma trennen" style="${inp}"></label>
     </div>`;
   }
@@ -1310,8 +1339,19 @@
     const bt=$('buildTag'); if(bt) bt.textContent='· '+BUILD;
     const all=bScenes(); const vis=visScenes();
     const plan=planScenes(); const planTotal=plan.length;
-    const filt=DP.filter; const shown=all.filter(s=> filt==='open'?(!s.done&&!s.hidden) : filt==='done'?(s.done&&!s.hidden) : filt==='hidden'?s.hidden : !s.hidden);
+    const filt=DP.filter; const q=DP.q.trim().toLowerCase(); const fa=DP.actors, fl=DP.locs;
+    let shown=all.filter(s=> filt==='open'?(!s.done&&!s.hidden) : filt==='done'?(s.done&&!s.hidden) : filt==='hidden'?s.hidden : !s.hidden);
+    shown=shown.filter(s=>{ const r=sceneRich(s.no)||{}; const chars=r.ch||[]; const loc=(r.loc||s.title||'');
+      if(q){ const hay=(s.no+' '+(s.title||'')+' '+loc+' '+chars.join(' ')+' '+(r.kulisse||'')).toLowerCase(); if(!hay.includes(q)) return false; }
+      if(fa.length && !fa.some(a=>chars.includes(a))) return false;
+      if(fl.length && !fl.includes(loc)) return false;
+      return true; });
+    if(DP.sort==='day') shown=shown.slice().sort((a,b)=>((sceneDay(a.no)||99)-(sceneDay(b.no)||99))||(a.no-b.no));
+    else shown=shown.slice().sort((a,b)=>a.no-b.no);
     const filterBtns=[['all','Alle'],['open','Offen'],['done','Erledigt'],['hidden','Ausgeblendet']].map(([k,l])=>`<div data-dp-act="filter" data-f="${k}" style="cursor:pointer;padding:7px 12px;border-radius:7px;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:${filt===k?'#0c0d10':'#9a9ca3'};background:${filt===k?ACC:'transparent'};">${l}</div>`).join('');
+    const actorChips=allChars().map(a=>{ const on=fa.includes(a); const c=charColor(a); return `<span data-dp-act="factor" data-a="${esc(a)}" style="cursor:pointer;font:700 10px 'IBM Plex Mono',monospace;color:${on?'#0c0d10':c};background:${on?c:'transparent'};border:1px solid ${c};border-radius:6px;padding:3px 8px;">${esc(a)}</span>`; }).join(' ');
+    const locChips=allLocs().map(l=>{ const on=fl.includes(l); return `<span data-dp-act="floc" data-l="${esc(l)}" style="cursor:pointer;font:700 10px 'IBM Plex Mono',monospace;color:${on?'#0c0d10':'#c9cace'};background:${on?ACC:'transparent'};border:1px solid ${on?ACC:'#34373e'};border-radius:6px;padding:3px 8px;">${esc(l)}</span>`; }).join(' ');
+    const anyFilter=q||fa.length||fl.length||DP.sort!=='no';
     const planIds=new Set(bPlan());
     const rows=shown.map(s=>{ const inPlan=planIds.has(s.id);
       if(s.hidden) return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#151619;border:1px dashed #34373e;border-radius:12px;padding:10px 13px;opacity:.75;">
@@ -1330,6 +1370,7 @@
         <div data-dp-act="scedit" data-no="${s.no}" title="Ort, Kulisse & Besetzung bearbeiten" style="cursor:pointer;flex:none;height:30px;padding:0 10px;border-radius:8px;display:flex;align-items:center;gap:5px;background:${editing?ACC:'#26282d'};border:1px solid ${editing?ACC:'#34373e'};color:${editing?'#0c0d10':'#9a9ca3'};font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.05em;">✎ DETAILS</div>
         <div data-dp-act="hide" data-id="${s.id}" title="Ausblenden – zählt nicht mit" style="cursor:pointer;flex:none;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#26282d;border:1px solid #34373e;color:#9a9ca3;font-size:15px;">⦸</div>
         <div data-dp-act="remove" data-id="${s.id}" title="Szene entfernen" style="cursor:pointer;flex:none;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#5a5d64;font:400 18px 'IBM Plex Mono',monospace;">✕</div>
+        ${(()=>{ const r=sceneRich(s.no)||{}; const dd=sceneDay(s.no); const chips=(r.ch||[]).map(c=>charChip(c,10)).join(' '); return `<div style="flex-basis:100%;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:39px;margin-top:2px;">${dd?`<span style="font:700 9px 'IBM Plex Mono',monospace;letter-spacing:.05em;color:#0c0d10;background:oklch(0.62 0.16 290);border-radius:5px;padding:2px 7px;">DREHTAG ${dd}</span>`:''}${r.dur?`<span style="font:700 9px 'IBM Plex Mono',monospace;color:oklch(0.82 0.11 210);border:1px solid oklch(0.5 0.09 210);border-radius:5px;padding:2px 6px;">⏱ ${esc(r.dur)} h</span>`:''}${chips||`<span style="font:500 9px 'IBM Plex Mono',monospace;color:#6c6e74;">keine Figuren hinterlegt</span>`}</div>`; })()}
         </div>${editing?dpSceneDetailHTML(s.no):''}
       </div>`; }).join('') || `<div style="text-align:center;color:#6c6e74;font:500 14px 'IBM Plex Mono',monospace;padding:30px 0;">Keine Szenen in dieser Ansicht.</div>`;
     const dayBtns=[1,2,3,4,5,6].map(dv=>`<div data-dp-act="switchday" data-day="${dv}" title="Zu Drehtag ${dv} wechseln" style="cursor:pointer;min-width:38px;height:34px;padding:0 10px;border-radius:8px;background:${num(DB.board.dayNum)===dv?ACC:'#26282d'};border:1px solid ${num(DB.board.dayNum)===dv?ACC:'#34373e'};display:flex;align-items:center;justify-content:center;font:700 13px 'Saira Condensed',sans-serif;letter-spacing:.05em;color:${num(DB.board.dayNum)===dv?'#0c0d10':'#c9cace'};">T${dv}</div>`).join('')+`<div data-dp-act="resetday" title="Diesen Drehtag aus der Drehplan-Vorlage neu laden" style="cursor:pointer;height:34px;padding:0 11px;border-radius:8px;background:#26282d;border:1px solid #34373e;display:flex;align-items:center;justify-content:center;font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#9a9ca3;">↺ VORLAGE</div>`;
@@ -1348,7 +1389,12 @@
         <div style="display:flex;align-items:center;gap:9px;margin-top:11px;flex-wrap:wrap;"><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#8a8d94;text-transform:uppercase;">Szene hinzufügen:</span><select id="dpPlanAdd" style="flex:1;min-width:180px;background:#101114;border:1px solid #34373e;border-radius:8px;padding:9px 10px;color:#f4f3ef;font:600 13px 'IBM Plex Mono',monospace;"><option value="">— auswählen —</option>${addOpts}</select></div>
         <div style="margin-top:10px;font:400 10px 'IBM Plex Mono',monospace;color:#6c6e74;line-height:1.5;">Abhaken & „Jetzt im Dreh" läuft im Tab <b style="color:#9a9ca3;">Board</b>.</div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:4px;"><div style="font:700 17px 'Saira Condensed',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#c9cace;">Alle Szenen</div><div style="display:flex;gap:5px;background:#1b1d22;border:1px solid #2a2c31;border-radius:10px;padding:4px;flex-wrap:wrap;">${filterBtns}</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:4px;"><div style="font:700 17px 'Saira Condensed',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#c9cace;">Alle Szenen · ${shown.length}</div><div style="display:flex;gap:5px;background:#1b1d22;border:1px solid #2a2c31;border-radius:10px;padding:4px;flex-wrap:wrap;">${filterBtns}</div></div>
+      <div style="background:#1b1d22;border:1px solid #2a2c31;border-radius:14px;padding:13px 15px;display:flex;flex-direction:column;gap:11px;">
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><input id="dpSearch" value="${esc(DP.q)}" placeholder="Suche: Ort, Figur, Kulisse, Nr. …" style="flex:1;min-width:180px;background:#101114;border:1px solid #34373e;border-radius:8px;padding:9px 11px;color:#f4f3ef;font:600 13px 'IBM Plex Mono',monospace;"><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#8a8d94;text-transform:uppercase;">Sortieren:</span><select id="dpSort" style="background:#101114;border:1px solid #34373e;border-radius:8px;padding:9px 10px;color:#f4f3ef;font:600 12px 'IBM Plex Mono',monospace;"><option value="no"${DP.sort==='no'?' selected':''}>Nummer</option><option value="day"${DP.sort==='day'?' selected':''}>Drehtag</option></select>${anyFilter?`<div data-dp-act="clearf" style="cursor:pointer;font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#e0a04a;border:1px solid #4a3a24;border-radius:8px;padding:8px 11px;">FILTER LÖSCHEN</div>`:''}</div>
+        <div><div style="font:600 9px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a8d94;text-transform:uppercase;margin-bottom:6px;">Nach Schauspieler:in / Figur</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${actorChips||'<span style="color:#6c6e74;font:500 11px \'IBM Plex Mono\',monospace;">—</span>'}</div></div>
+        <div><div style="font:600 9px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a8d94;text-transform:uppercase;margin-bottom:6px;">Nach Drehort / Kulisse</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${locChips||'<span style="color:#6c6e74;font:500 11px \'IBM Plex Mono\',monospace;">—</span>'}</div></div>
+      </div>
       <div style="display:flex;flex-direction:column;gap:8px;">${rows}</div>
       <div data-dp-act="add" style="cursor:pointer;border:1px dashed #34373e;border-radius:12px;padding:15px;text-align:center;color:#9a9ca3;font:600 13px 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;">+ Szene hinzufügen</div>`;
   }
@@ -1360,12 +1406,21 @@
     const vis=visScenes(); const done=vis.filter(s=>s.done).length, total=vis.length; const pct=total>0?Math.round(done/total*100):0;
     const plan=planScenes(); const planTotal=plan.length; const planDone=plan.filter(s=>s.done).length;
     const cur=DB.board.current; const next=DB.board.stage&&DB.board.stage.next;
-    const abRows=plan.length?plan.map(s=>{ const r=sceneRich(s.no); const chs=(r&&r.ch&&r.ch.length)?r.ch.join(' · '):'—'; const isCur=s.id===cur; return `<div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:${isCur?'oklch(0.3 0.07 25)':(s.done?'oklch(0.26 0.05 155)':'#1b1d22')};border:1px solid ${isCur?'oklch(0.6 0.21 25)':(s.done?'oklch(0.45 0.09 155)':'#2a2c31')};border-radius:12px;padding:11px 13px;">
+    const st=showTimes(); const dn=num(DB.board.dayNum); const dsVal=(DB.board.dayStart&&DB.board.dayStart[dpDay()])||'09:00';
+    const ag=Array.isArray(DB.board.agenda)?DB.board.agenda:[]; const startByNo={}; ag.forEach(a=>startByNo[a.no]={start:a.start,dur:a.dur});
+    const abRows=plan.length?plan.map(s=>{ const r=sceneRich(s.no); const chs=(r&&r.ch&&r.ch.length)?r.ch.join(' · '):'—'; const isCur=s.id===cur; const info=startByNo[s.no]||{};
+      const timeCol = st?`<div style="flex:none;text-align:right;min-width:66px;">${info.start?`<div style="font:700 14px 'Saira Condensed',sans-serif;color:#c9cace;">${esc(info.start)}</div>`:''}${info.dur?`<div style="font:600 10px 'IBM Plex Mono',monospace;color:#6c6e74;">${esc(info.dur)} h</div>`:''}${isCur?`<div data-cd="main" style="font:700 17px 'Saira Condensed',sans-serif;line-height:1;margin-top:2px;"></div>`:(!s.done?`<div data-cdadj="${s.no}" style="font:600 10px 'IBM Plex Mono',monospace;color:oklch(0.7 0.2 25);"></div>`:'')}</div>`:'';
+      return `<div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:${isCur?'oklch(0.3 0.07 25)':(s.done?'oklch(0.26 0.05 155)':'#1b1d22')};border:1px solid ${isCur?'oklch(0.6 0.21 25)':(s.done?'oklch(0.45 0.09 155)':'#2a2c31')};border-radius:12px;padding:11px 13px;">
         <div data-dp-act="toggle" data-id="${s.id}" style="cursor:pointer;flex:none;width:42px;height:42px;border-radius:10px;border:2px solid ${s.done?ACC:'#3a3d44'};background:${s.done?ACC:'transparent'};display:flex;align-items:center;justify-content:center;color:#0c0d10;font:700 22px 'IBM Plex Mono',monospace;">${s.done?'✓':''}</div>
         <span style="flex:none;width:28px;font:700 20px 'Saira Condensed',sans-serif;color:#6c6e74;text-align:center;">${s.no}</span>
-        <div style="flex:1;min-width:120px;"><div style="font:700 17px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${s.done?'#cfe8d6':'#f4f3ef'};line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.title||'—')}</div><div style="font:400 11px 'IBM Plex Mono',monospace;color:#8a8d94;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(chs)}</div></div>
+        <div style="flex:1;min-width:100px;"><div style="font:700 17px 'Saira Condensed',sans-serif;text-transform:uppercase;color:${s.done?'#cfe8d6':'#f4f3ef'};line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.title||'—')}</div><div style="font:400 11px 'IBM Plex Mono',monospace;color:#8a8d94;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(chs)}</div></div>
+        ${timeCol}
         <div data-dp-act="current" data-id="${s.id}" title="Als aktuell gedrehte Szene markieren" style="cursor:pointer;flex:none;height:32px;padding:0 12px;border-radius:8px;display:flex;align-items:center;gap:6px;font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;background:${isCur?'oklch(0.6 0.21 25)':'#26282d'};border:1px solid ${isCur?'oklch(0.6 0.21 25)':'#34373e'};color:${isCur?'#fff':'#9a9ca3'};">${isCur?'● JETZT':'JETZT'}</div>
       </div>`;}).join('') : `<div style="text-align:center;color:#6c6e74;font:500 13px 'IBM Plex Mono',monospace;padding:20px 0;">Kein Tagesplan – lege ihn im Tab „Drehplan" an.</div>`;
+    const timeCard=`<div style="background:#1b1d22;border:1px solid #2a2c31;border-radius:18px;padding:18px 20px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;bottom:0;width:5px;background:oklch(0.7 0.12 210);"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div style="font:700 16px 'Saira Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#c9cace;">Zeitplan</div><div data-dp-act="timestoggle" style="cursor:pointer;padding:8px 13px;border-radius:8px;font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.06em;background:${st?ACC:'#26282d'};border:1px solid ${st?ACC:'#34373e'};color:${st?'#0c0d10':'#9a9ca3'};">ZEITEN ${st?'AN':'AUS'}</div></div>
+      ${st?`<div style="display:flex;align-items:center;gap:10px;margin-top:13px;flex-wrap:wrap;"><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#8a8d94;text-transform:uppercase;">Drehtag ${dn} beginnt:</span><input id="dpDayStart" type="time" value="${esc(dsVal)}" style="background:#101114;border:1px solid #34373e;border-radius:8px;padding:9px 11px;color:#f4f3ef;font:700 15px 'Saira Condensed',sans-serif;"><div data-dp-act="resettimer" title="Countdown der aktuellen Szene neu starten" style="cursor:pointer;padding:9px 13px;border-radius:8px;background:#26282d;border:1px solid #34373e;color:#c9cace;font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.06em;">⟲ TIMER NEU</div></div><div style="margin-top:10px;font:400 10px 'IBM Plex Mono',monospace;color:#6c6e74;line-height:1.5;">Der Countdown startet automatisch, sobald du eine Szene auf „JETZT" setzt. Überzogene Zeit wird gleichmäßig von den restlichen Szenen abgezogen. Zum Entspannen „Zeiten aus".</div>`:`<div style="margin-top:10px;font:400 11px 'IBM Plex Mono',monospace;color:#8a8d94;line-height:1.5;">Zeiten & Countdown sind ausgeblendet.</div>`}
+    </div>`;
     const matBtns=[['−1',-1,'#26282d','#34373e','#c9cace'],['+1',1,'#26282d','#34373e','#f4f3ef'],['+5',5,'oklch(0.28 0.05 210)','oklch(0.45 0.08 210)','#dff'],['+10',10,'oklch(0.7 0.12 210)','oklch(0.7 0.12 210)','#0c0d10']].map(([l,dl,bg,bd,fg])=>`<div data-dp-act="mat" data-d="${dl}" style="cursor:pointer;min-width:52px;height:48px;padding:0 14px;border-radius:11px;background:${bg};border:1px solid ${bd};display:flex;align-items:center;justify-content:center;font:700 18px 'Saira Condensed',sans-serif;color:${fg};">${l}</div>`).join('');
     const steppers=[['Aktueller Drehtag','dayNum',0],['Drehtage gesamt','dayTotal',1],['Teilnehmer:innen','participants',0]].map(([label,field,min])=>`<div style="background:#1b1d22;border:1px solid #2a2c31;border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;"><div style="flex:1;min-width:0;"><div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#9a9ca3;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div><div style="font:700 40px 'Saira Condensed',sans-serif;line-height:.9;margin-top:4px;">${num(DB.board[field])}</div></div><div style="display:flex;gap:7px;flex:none;"><div data-dp-act="step" data-field="${field}" data-d="-1" data-min="${min}" style="cursor:pointer;width:46px;height:46px;border-radius:11px;background:#26282d;border:1px solid #34373e;display:flex;align-items:center;justify-content:center;font:600 26px 'IBM Plex Mono',monospace;color:#c9cace;">−</div><div data-dp-act="step" data-field="${field}" data-d="1" data-min="${min}" style="cursor:pointer;width:46px;height:46px;border-radius:11px;background:${ACC};border:1px solid ${ACC};display:flex;align-items:center;justify-content:center;font:600 26px 'IBM Plex Mono',monospace;color:#0c0d10;">+</div></div></div>`).join('');
     body.innerHTML=`
@@ -1377,6 +1432,7 @@
         <div style="margin-top:18px;height:16px;background:#26282d;border-radius:8px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${ACC};border-radius:8px;transition:width .5s;"></div></div>
       </div>
       <div style="background:#101114;border:1px solid #2a2c31;border-radius:14px;padding:14px 16px;"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.84 0.13 78);text-transform:uppercase;">Nächste Szene</span>${next&&next.nextDay?`<span style="font:700 9px 'IBM Plex Mono',monospace;letter-spacing:.05em;color:#0c0d10;background:oklch(0.84 0.13 78);border-radius:5px;padding:1px 7px;">DREHTAG ${next.day}</span>`:''}</div>${next?`<div style="font:700 22px 'Saira Condensed',sans-serif;text-transform:uppercase;margin-top:4px;">SZ ${next.no} · ${esc(next.loc)}${next.tod?(' · '+esc(next.tod)):''}</div><div style="font:500 12px 'IBM Plex Mono',monospace;color:#c9cace;margin-top:3px;">${next.chars&&next.chars.length?esc(next.chars.join(' · ')):'—'}</div>${next.kulisse?`<div style="font:500 11px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:2px;">Kulisse: ${esc(next.kulisse)}</div>`:''}`:`<div style="font:500 13px 'IBM Plex Mono',monospace;color:#8a8d94;margin-top:5px;">Alle geplanten Szenen abgehakt 🎉</div>`}</div>
+      ${timeCard}
       <div style="font:700 17px 'Saira Condensed',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#c9cace;margin-top:4px;">Szenen abhaken · Drehtag ${num(DB.board.dayNum)}</div>
       <div style="display:flex;flex-direction:column;gap:8px;">${abRows}</div>
       <div style="background:#1b1d22;border:1px solid #2a2c31;border-radius:18px;padding:22px 24px;position:relative;overflow:hidden;margin-top:6px;"><div style="position:absolute;top:0;left:0;bottom:0;width:5px;background:oklch(0.7 0.12 210);"></div>
@@ -1385,6 +1441,7 @@
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:12px;">${steppers}</div>
       <div style="text-align:center;color:#5a5d64;font:400 11px 'IBM Plex Mono',monospace;line-height:1.7;margin-top:8px;">Jede Änderung wird sofort gespeichert und über die Cloud aufs Board übertragen.</div>`;
+    requestAnimationFrame(tickTimers);
   }
 
   // ---- printable scene notes (Szenen-Zettel) ----
@@ -1421,8 +1478,8 @@
   }
 
   function wireDrehplan(){
-    const onInput=(e)=>{ const sf=e.target.closest('[data-scfield]'); if(sf){ dpSceneSet(+sf.getAttribute('data-no'), sf.getAttribute('data-scfield'), sf.value); return; } const el=e.target.closest('input[data-scene]'); if(el) dpRename(el.getAttribute('data-scene'), el.value); };
-    const onChange=(e)=>{ const sf=e.target.closest('select[data-scfield]'); if(sf){ dpSceneSet(+sf.getAttribute('data-no'), sf.getAttribute('data-scfield'), sf.value); return; } const m=e.target.closest('#dpMat'); if(m){ dpSetMaterial(m.value); return; } const pa=e.target.closest('#dpPlanAdd'); if(pa){ const id=pa.value; pa.value=''; dpPlanAdd(id); } };
+    const onInput=(e)=>{ const q=e.target.closest('#dpSearch'); if(q){ dpSetQuery(q.value); return; } const sf=e.target.closest('[data-scfield]'); if(sf){ dpSceneSet(+sf.getAttribute('data-no'), sf.getAttribute('data-scfield'), sf.value); return; } const el=e.target.closest('input[data-scene]'); if(el) dpRename(el.getAttribute('data-scene'), el.value); };
+    const onChange=(e)=>{ const sf=e.target.closest('select[data-scfield]'); if(sf){ dpSceneSet(+sf.getAttribute('data-no'), sf.getAttribute('data-scfield'), sf.value); return; } const so=e.target.closest('#dpSort'); if(so){ dpSetSort(so.value); return; } const ds=e.target.closest('#dpDayStart'); if(ds){ dpSetDayStart(ds.value); return; } const m=e.target.closest('#dpMat'); if(m){ dpSetMaterial(m.value); return; } const pa=e.target.closest('#dpPlanAdd'); if(pa){ const id=pa.value; pa.value=''; dpPlanAdd(id); } };
     const onClick=(e)=>{ const a=e.target.closest('[data-dp-act]'); if(!a) return; const act=a.getAttribute('data-dp-act');
       if(act==='filter') return dpSetFilter(a.getAttribute('data-f'));
       if(act==='toggle') return dpToggle(a.getAttribute('data-id'));
@@ -1435,6 +1492,11 @@
       if(act==='planmove') return dpPlanMove(a.getAttribute('data-id'), parseInt(a.getAttribute('data-dir')));
       if(act==='switchday') return dpSwitchDay(parseInt(a.getAttribute('data-day')));
       if(act==='resetday') return dpResetDay();
+      if(act==='factor') return dpToggleActor(a.getAttribute('data-a'));
+      if(act==='floc') return dpToggleLoc(a.getAttribute('data-l'));
+      if(act==='clearf') return dpClearFilters();
+      if(act==='timestoggle') return dpToggleTimes();
+      if(act==='resettimer') return dpResetTimer();
       if(act==='add') return dpAdd();
       if(act==='mat') return dpBump('minutesShot', parseInt(a.getAttribute('data-d')), 0);
       if(act==='step') return dpBump(a.getAttribute('data-field'), parseInt(a.getAttribute('data-d')), num(a.getAttribute('data-min')));
@@ -1449,11 +1511,27 @@
 
   function clockParts(){ const nd=new Date(); return { time:nd.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'}), date:nd.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) }; }
   function fitBoard(){ const s=Math.min(window.innerWidth/1920, window.innerHeight/1080); $('boardStage').style.transform='scale('+s+')'; }
-  function openBoard(){ boardOpen=true; $('boardView').style.display='flex'; renderBoard(); fitBoard(); clearInterval(boardTick); boardTick=setInterval(()=>{ const c=clockParts(); const t=$('boardTime'),d=$('boardDate'); if(t)t.textContent=c.time; if(d)d.textContent=c.date; },1000); }
+  function openBoard(){ boardOpen=true; $('boardView').style.display='flex'; renderBoard(); fitBoard(); clearInterval(boardTick); boardTick=setInterval(()=>{ const c=clockParts(); const t=$('boardTime'),d=$('boardDate'); if(t)t.textContent=c.time; if(d)d.textContent=c.date; tickTimers(); },1000); }
   function closeBoard(){ boardOpen=false; $('boardView').style.display='none'; clearInterval(boardTick); boardTick=null; try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){} }
 
+  // Live countdown for the current scene + even overrun-redistribution to the rest.
+  function liveTiming(){
+    const d=DB.board; if(!showTimes()) return null;
+    const cur=d.stage&&d.stage.cur; if(!cur||!d.curStart||!durMin(cur.dur)) return null;
+    const durMs=durMin(cur.dur)*60000; const remMs=durMs-(Date.now()-d.curStart); const overMs=remMs<0?-remMs:0;
+    const ps=planScenes(); const idx=ps.findIndex(x=>x.id===d.current);
+    const remaining= idx>=0 ? ps.slice(idx+1).filter(x=>!x.done) : [];
+    return { remMs, overMs, over:overMs>0, perRedMs: remaining.length?overMs/remaining.length:0, remaining };
+  }
+  function tickTimers(){
+    const t=liveTiming();
+    document.querySelectorAll('[data-cd="main"]').forEach(el=>{ if(!t){ el.textContent=''; return; }
+      if(t.over){ el.textContent='+'+mmss(t.overMs); el.style.color='oklch(0.7 0.22 25)'; }
+      else { el.textContent=mmss(t.remMs); el.style.color=t.remMs<120000?'oklch(0.85 0.16 78)':'#f4f3ef'; } });
+    document.querySelectorAll('[data-cdadj]').forEach(el=>{ if(!t||!t.over){ el.textContent=''; return; } const no=+el.getAttribute('data-cdadj'); el.textContent = t.remaining.some(x=>x.no===no)?('−'+mmss(t.perRedMs)):''; });
+  }
   function renderBoard(){
-    if(boardPublic){ if(boardTab==='plan'){ renderPublicPlan(); return; } $('boardStage').style.display='none'; $('boardMobile').style.display='block'; renderBoardMobile(); return; }   // QR board is phone-first & always tabbed
+    if(boardPublic){ if(boardTab==='plan'){ renderPublicPlan(); requestAnimationFrame(tickTimers); return; } $('boardStage').style.display='none'; $('boardMobile').style.display='block'; renderBoardMobile(); requestAnimationFrame(tickTimers); return; }   // QR board is phone-first & always tabbed
     if(boardIsMobile()){ $('boardStage').style.display='none'; $('boardMobile').style.display='block'; renderBoardMobile(); return; }
     $('boardMobile').style.display='none'; $('boardStage').style.display='block'; fitBoard();
     odoQueue=[];
@@ -1469,7 +1547,7 @@
     const banner = `<div ${curChanged?'class="flash"':''} style="flex:none;background:${curInfo?'linear-gradient(90deg,oklch(0.3 0.08 25),#1b1d22 72%)':(todayDone?'linear-gradient(90deg,oklch(0.28 0.07 155),#1b1d22 72%)':'#1b1d22')};border:1px solid ${curInfo?'oklch(0.5 0.14 25)':(todayDone?'oklch(0.45 0.1 155)':'#2a2c31')};border-radius:20px;padding:24px 34px;display:flex;align-items:center;gap:30px;overflow:hidden;">
         <div style="flex:1.3;display:flex;align-items:center;gap:22px;min-width:0;">
           <div style="display:flex;align-items:center;gap:13px;flex:none;"><span style="width:16px;height:16px;border-radius:50%;background:${leftAccent};display:block;${curInfo?'animation:livedot 1.2s ease-in-out infinite;':''}"></span><span style="font:700 20px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:${curInfo?'oklch(0.8 0.16 25)':(todayDone?'oklch(0.82 0.14 155)':'#6c6e74')};text-transform:uppercase;">${curInfo?'Jetzt im Dreh':(todayDone?'Heute abgedreht ✓':'Drehpause')}</span></div>
-          ${curInfo?`<div style="min-width:0;"><div style="display:flex;align-items:baseline;gap:14px;min-width:0;"><span style="font:700 56px 'Saira Condensed',sans-serif;color:#fff;line-height:.85;flex:none;">SZ ${curInfo.no}</span><span style="font:700 48px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.85;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(curInfo.loc||'—')}${curInfo.tod?` · ${esc(curInfo.tod)}`:''}</span></div>${chLine(curInfo.chars)?`<div style="font:500 17px 'IBM Plex Mono',monospace;color:#c9cace;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(chLine(curInfo.chars))}</div>`:''}${curInfo.kulisse?`<div style="font:500 14px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Kulisse: ${esc(curInfo.kulisse)}</div>`:''}</div>`:`<span style="font:500 20px 'IBM Plex Mono',monospace;color:${todayDone?'#a7d8b6':'#8a8d94'};">${todayDone?'Alle Szenen von heute sind im Kasten.':'Aktuell wird keine Szene gedreht.'}</span>`}
+          ${curInfo?`<div style="min-width:0;"><div style="display:flex;align-items:baseline;gap:14px;min-width:0;"><span style="font:700 56px 'Saira Condensed',sans-serif;color:#fff;line-height:.85;flex:none;">SZ ${curInfo.no}</span><span style="font:700 48px 'Saira Condensed',sans-serif;color:#f4f3ef;line-height:.85;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(curInfo.loc||'—')}${curInfo.tod?` · ${esc(curInfo.tod)}`:''}</span></div>${chLine(curInfo.chars)?`<div style="font:500 17px 'IBM Plex Mono',monospace;color:#c9cace;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(chLine(curInfo.chars))}</div>`:''}${curInfo.kulisse?`<div style="font:500 14px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Kulisse: ${esc(curInfo.kulisse)}</div>`:''}${showTimes()&&durMin(curInfo.dur)?`<div style="margin-top:9px;display:flex;align-items:baseline;gap:11px;"><span data-cd="main" style="font:700 44px 'Saira Condensed',sans-serif;line-height:.85;">–</span><span style="font:600 13px 'IBM Plex Mono',monospace;color:#8a8d94;text-transform:uppercase;letter-spacing:.08em;">verbleibend · geplant ${esc(curInfo.dur)} h</span></div>`:''}</div>`:`<span style="font:500 20px 'IBM Plex Mono',monospace;color:${todayDone?'#a7d8b6':'#8a8d94'};">${todayDone?'Alle Szenen von heute sind im Kasten.':'Aktuell wird keine Szene gedreht.'}</span>`}
         </div>
         <div style="flex:none;min-width:320px;max-width:46%;border-left:1px solid #34373e;padding-left:30px;">
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><span style="font:700 16px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:oklch(0.84 0.13 78);text-transform:uppercase;">Nächste Szene</span>${nextTag}</div>
@@ -1489,6 +1567,7 @@
         <span style="flex:none;width:${az.dot}px;height:${az.dot}px;border-radius:50%;background:${a.cur?'oklch(0.6 0.21 25)':(a.done?ACC:'#3a3d44')};${a.cur?'animation:livedot 1.2s ease-in-out infinite;':''}"></span>
         <span style="flex:none;width:${az.no+16}px;font:700 ${az.no}px 'Saira Condensed',sans-serif;color:#f4f3ef;">${a.no}</span>
         <div style="flex:1;min-width:0;"><div style="font:700 ${az.loc}px 'Saira Condensed',sans-serif;text-transform:uppercase;color:#f4f3ef;line-height:1.02;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.loc||'—')}${a.tod?` · ${esc(a.tod)}`:''}</div>${(a.chars&&a.chars.length)||a.kulisse?`<div style="font:500 ${az.ch}px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc((a.chars||[]).join(' · '))}${a.kulisse?`${a.chars&&a.chars.length?'  ·  ':''}Kulisse: ${esc(a.kulisse)}`:''}</div>`:''}</div>
+        ${showTimes()?`<div style="flex:none;text-align:right;min-width:58px;margin-right:8px;">${a.start?`<div style="font:700 ${az.loc-4}px 'Saira Condensed',sans-serif;color:#c9cace;line-height:1;">${esc(a.start)}</div>`:''}${a.dur?`<div style="font:600 ${Math.max(az.ch-1,11)}px 'IBM Plex Mono',monospace;color:#6c6e74;">${esc(a.dur)} h</div>`:''}${(!a.done&&!a.cur)?`<div data-cdadj="${a.no}" style="font:600 ${Math.max(az.ch-1,11)}px 'IBM Plex Mono',monospace;color:oklch(0.72 0.2 25);"></div>`:''}</div>`:''}
         ${a.cur?`<span style="flex:none;font:700 ${az.tag}px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:oklch(0.82 0.16 25);">JETZT</span>`:(a.done?`<span style="flex:none;font:700 ${az.tag+6}px 'IBM Plex Mono',monospace;color:${ACC};">✓</span>`:`<span style="flex:none;font:600 ${az.tag-1}px 'IBM Plex Mono',monospace;color:#6c6e74;letter-spacing:.08em;">offen</span>`)}
       </div>`).join('') : `<div style="color:#6c6e74;font:500 18px 'IBM Plex Mono',monospace;padding:24px 0;">Kein Tagesplan für Drehtag ${agendaDay} – im Reiter „Drehplan" anlegen.</div>`;
     $('boardStage').innerHTML=`
@@ -1527,6 +1606,7 @@
       q.forEach(id=>{ const el=$(id); if(el){ void el.offsetHeight; el.style.transform='translateY('+el.getAttribute('data-endy')+')'; } });
     });
     boardPrev={ pct, hpct, sd, remaining, dn, current:d.current, participants:num(d.participants), minutesShot:num(d.minutesShot) };
+    requestAnimationFrame(tickTimers);
   }
 
   // Mobile / phone board (responsive, vertical) — also used by the public #board view
@@ -1548,7 +1628,7 @@
         ${boardPublic?publicTabsHTML():''}
         <div style="${curInfo?'background:linear-gradient(90deg,oklch(0.3 0.08 25),#1b1d22 78%);border:1px solid oklch(0.5 0.14 25);':(todayDone?'background:linear-gradient(90deg,oklch(0.27 0.06 155),#1b1d22 78%);border:1px solid oklch(0.45 0.1 155);':card)}border-radius:16px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;">
           <span style="margin-top:3px;width:12px;height:12px;border-radius:50%;flex:none;background:${curInfo?'oklch(0.6 0.21 25)':(todayDone?ACC:'#3a3d44')};${curInfo?'animation:livedot 1.2s ease-in-out infinite;':''}"></span>
-          ${curInfo?`<div style="min-width:0;"><div style="font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:oklch(0.8 0.16 25);text-transform:uppercase;">Jetzt im Dreh</div><div style="font:700 21px 'Saira Condensed',sans-serif;text-transform:uppercase;line-height:1.08;margin-top:3px;">SZ ${curInfo.no} · ${esc(curInfo.loc||'—')}${curInfo.tod?` · ${esc(curInfo.tod)}`:''}</div>${chLine(curInfo.chars)?`<div style="font:500 12px 'IBM Plex Mono',monospace;color:#c9cace;margin-top:4px;line-height:1.4;">${esc(chLine(curInfo.chars))}</div>`:''}${curInfo.kulisse?`<div style="font:500 11px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:2px;line-height:1.35;">Kulisse: ${esc(curInfo.kulisse)}</div>`:''}</div>`:`<div style="min-width:0;"><div style="font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:${todayDone?'oklch(0.82 0.14 155)':'#8a8d94'};text-transform:uppercase;">${todayDone?'Heute abgedreht ✓':'Drehpause'}</div>${todayDone?`<div style="font:600 13px 'IBM Plex Mono',monospace;color:#a7d8b6;margin-top:4px;line-height:1.4;">Alle Szenen von heute im Kasten.</div>`:''}</div>`}
+          ${curInfo?`<div style="min-width:0;"><div style="font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:oklch(0.8 0.16 25);text-transform:uppercase;">Jetzt im Dreh</div><div style="font:700 21px 'Saira Condensed',sans-serif;text-transform:uppercase;line-height:1.08;margin-top:3px;">SZ ${curInfo.no} · ${esc(curInfo.loc||'—')}${curInfo.tod?` · ${esc(curInfo.tod)}`:''}</div>${chLine(curInfo.chars)?`<div style="font:500 12px 'IBM Plex Mono',monospace;color:#c9cace;margin-top:4px;line-height:1.4;">${esc(chLine(curInfo.chars))}</div>`:''}${curInfo.kulisse?`<div style="font:500 11px 'IBM Plex Mono',monospace;color:#9a9ca3;margin-top:2px;line-height:1.35;">Kulisse: ${esc(curInfo.kulisse)}</div>`:''}${showTimes()&&durMin(curInfo.dur)?`<div style="margin-top:6px;display:flex;align-items:baseline;gap:8px;"><span data-cd="main" style="font:700 30px 'Saira Condensed',sans-serif;line-height:.9;">–</span><span style="font:600 10px 'IBM Plex Mono',monospace;color:#8a8d94;text-transform:uppercase;">verbleibend · ${esc(curInfo.dur)} h</span></div>`:''}</div>`:`<div style="min-width:0;"><div style="font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:${todayDone?'oklch(0.82 0.14 155)':'#8a8d94'};text-transform:uppercase;">${todayDone?'Heute abgedreht ✓':'Drehpause'}</div>${todayDone?`<div style="font:600 13px 'IBM Plex Mono',monospace;color:#a7d8b6;margin-top:4px;line-height:1.4;">Alle Szenen von heute im Kasten.</div>`:''}</div>`}
         </div>
         <div style="background:linear-gradient(180deg,oklch(0.32 0.055 78),#1b1d22 72%);border:1px solid oklch(0.5 0.12 78);border-radius:18px;padding:15px 17px;">
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><span style="width:9px;height:9px;background:oklch(0.84 0.13 78);transform:rotate(45deg);display:block;flex:none;"></span><span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:oklch(0.88 0.12 78);text-transform:uppercase;">Nächste Szene · vorbereiten</span>${nextInfo&&nextInfo.nextDay?`<span style="font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.05em;color:#0c0d10;background:oklch(0.84 0.13 78);border-radius:5px;padding:2px 8px;">DREHTAG ${nextInfo.day}</span>`:''}</div>
@@ -1594,7 +1674,7 @@
     renderBoard();
     loadPublicBoard();
     setInterval(loadPublicBoard, 10000);
-    clearInterval(boardTick); boardTick=setInterval(()=>{ const c=clockParts(); const t=$('boardTime'),dd=$('boardDate'); if(t)t.textContent=c.time; if(dd)dd.textContent=c.date; },1000);
+    clearInterval(boardTick); boardTick=setInterval(()=>{ const c=clockParts(); const t=$('boardTime'),dd=$('boardDate'); if(t)t.textContent=c.time; if(dd)dd.textContent=c.date; tickTimers(); },1000);
     $('boardFull').addEventListener('click',()=>{ try{ if(document.fullscreenElement) document.exitFullscreen(); else $('boardView').requestFullscreen(); }catch(e){} });
     window.addEventListener('resize',()=>renderBoard());
   }
