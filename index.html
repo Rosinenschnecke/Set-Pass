@@ -2,6 +2,9 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>XY Pictures · Crew-Tools</title>
 <meta name="theme-color" content="#15161a">
@@ -228,7 +231,7 @@
   <!-- ================= DREHPLAN-STEUERUNG ================= -->
   <div id="viewDrehplan" style="flex:1;display:none;flex-direction:column;min-height:0;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid #2a2c31;flex:none;flex-wrap:wrap;">
-      <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;display:flex;align-items:center;gap:9px;"><span style="width:9px;height:9px;border-radius:50%;background:oklch(0.72 0.15 155);display:block;animation:livedot 1.6s ease-in-out infinite;"></span>Live-Steuerung fürs Base-Board</span>
+      <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#8a8d94;text-transform:uppercase;display:flex;align-items:center;gap:9px;"><span style="width:9px;height:9px;border-radius:50%;background:oklch(0.72 0.15 155);display:block;animation:livedot 1.6s ease-in-out infinite;"></span>Live-Steuerung fürs Base-Board <span id="buildTag" style="color:#5a5d64;letter-spacing:.1em;"></span></span>
       <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
         <div id="dpPrintScenes" class="act" role="button" tabindex="0" style="padding:9px 16px;">SZENEN-ZETTEL DRUCKEN</div>
         <div id="dpOpenBoard" class="act primary" role="button" tabindex="0" style="padding:9px 16px;background:oklch(0.72 0.15 155);border-color:oklch(0.72 0.15 155);color:#0c0d10;"><span style="width:8px;height:8px;background:#0c0d10;transform:rotate(45deg);display:block;margin-right:8px;"></span>BOARD ANZEIGEN</div>
@@ -324,6 +327,7 @@
   };
 
   const FILM_DEFAULT = 'The Massacre of Love';
+  const BUILD = 'v8 · 2026-07-01';   // bump on each deploy so a cached build is obvious
   const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null, plan:null, plans:null, stage:null, agenda:null };
   const BACK_DEFAULTS = {
     schedule:[{a:'08:00',b:'Treffpunkt & Check-in'},{a:'08:15',b:'Maske & Kostüm'},{a:'09:00',b:'Setbau / Einleuchten'},{a:'09:30',b:'Drehbeginn · Call',hot:true},{a:'13:00',b:'Mittagspause · Catering'},{a:'13:45',b:'Weiter am Set'},{a:'17:30',b:'Wrap · Sichtung',hot:true},{a:'18:00',b:'Set-Rückbau'}],
@@ -1227,6 +1231,7 @@
 
   function renderDrehplan(){
     const body=$('dpBody'); if(!body) return;
+    const bt=$('buildTag'); if(bt) bt.textContent='· '+BUILD;
     const all=bScenes(); const vis=visScenes();
     const done=vis.filter(s=>s.done).length, total=vis.length; const pct=total>0?Math.round(done/total*100):0;
     const plan=planScenes(); const planTotal=plan.length; const planDone=plan.filter(s=>s.done).length;
