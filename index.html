@@ -336,7 +336,7 @@
   };
 
   const FILM_DEFAULT = 'The Massacre of Love';
-  const BUILD = 'v11 · 2026-07-01';   // bump on each deploy so a cached build is obvious
+  const BUILD = 'v12 · 2026-07-01';   // bump on each deploy so a cached build is obvious
   const BOARD_DEFAULTS = { scenesTotal:'40', dayNum:'3', dayTotal:'8', todayPlan:'9', participants:'34', classes:'3', crewToday:'22', minutesShot:'46', motto:'', current:null, scenes:null, plan:null, plans:null, stage:null, agenda:null, agendaDay:null, todayDone:false, fullPlan:null };
   const BACK_DEFAULTS = {
     schedule:[{a:'08:00',b:'Treffpunkt & Check-in'},{a:'08:15',b:'Maske & Kostüm'},{a:'09:00',b:'Setbau / Einleuchten'},{a:'09:30',b:'Drehbeginn · Call',hot:true},{a:'13:00',b:'Mittagspause · Catering'},{a:'13:45',b:'Weiter am Set'},{a:'17:30',b:'Wrap · Sichtung',hot:true},{a:'18:00',b:'Set-Rückbau'}],
@@ -1166,8 +1166,22 @@
     return `<div style="display:flex;gap:9px;">${t('status','Live-Status')}${t('plan','Drehplan')}</div>`;
   }
   // Full shooting plan (all Drehtage) — public board "Drehplan" tab, phone-optimised.
+  // Build the grouped shooting plan for the public board — prefer the published
+  // fullPlan, else rebuild from the always-published plans + scenes (+ agenda/stage
+  // for cast) so the QR "Drehplan" page is never empty.
+  function publicPlanGroups(d){
+    if(Array.isArray(d.fullPlan) && d.fullPlan.length) return d.fullPlan;
+    const plans=(d.plans&&typeof d.plans==='object')?d.plans:{};
+    const scenes=Array.isArray(d.scenes)?d.scenes:[]; const byId=new Map(scenes.map(s=>[s.id,s]));
+    const info={}; const add=x=>{ if(x&&x.no!=null&&!info[x.no]) info[x.no]={loc:x.loc,tod:x.tod,kulisse:x.kulisse,chars:x.chars,dur:x.dur}; };
+    (Array.isArray(d.agenda)?d.agenda:[]).forEach(add); if(d.stage){ add(d.stage.cur); add(d.stage.next); }
+    const days=Object.keys(plans).map(k=>parseInt(k,10)).filter(x=>x>=1).sort((a,b)=>a-b);
+    const out=[];
+    days.forEach(day=>{ const arr=(plans[String(day)]||[]).map(id=>{ const s=byId.get(id); if(!s||s.hidden) return null; const i=info[s.no]||{}; return {no:s.no, loc:i.loc||s.title||'', tod:i.tod||'', kulisse:i.kulisse||'', chars:i.chars||[], dur:i.dur||'', done:!!s.done, cur:s.id===d.current}; }).filter(Boolean); if(arr.length) out.push({day, scenes:arr}); });
+    return out;
+  }
   function renderPublicPlan(){
-    const d=DB.board; const c=clockParts(); const full=Array.isArray(d.fullPlan)?d.fullPlan:[];
+    const d=DB.board; const c=clockParts(); const full=publicPlanGroups(d);
     const dayBlocks = full.length ? full.map(g=>`<div style="background:#1b1d22;border:1px solid #2a2c31;border-radius:16px;padding:15px 16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;"><div style="font:700 18px 'Saira Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#f4f3ef;">Drehtag ${g.day}</div><span style="font:600 10px 'IBM Plex Mono',monospace;color:#6c6e74;">${g.scenes.filter(s=>s.done).length}/${g.scenes.length}</span></div>
         <div style="margin-top:9px;">${g.scenes.map(a=>`<div style="display:flex;align-items:flex-start;gap:11px;padding:9px 0;border-bottom:1px solid #23252b;${a.done?'opacity:.5;':''}">
